@@ -33,9 +33,17 @@ jobs:
           username: axiwhc5fgu9i/shemtov.aaron@gmail.com
           password: ${{ secrets.OCIR_AUTH_TOKEN }}
 
-      - name: Resolve image tag
+      # We tag the image three ways:
+      #   - 0.0.<run_number> — auto-incrementing semver used by Flux ImagePolicy.
+      #     github.run_number monotonically increases per workflow file, so each
+      #     successful build gets a strictly higher version than the previous.
+      #   - <short-sha>       — immutable for traceability / ad-hoc rollback.
+      #   - latest            — convenience for ad-hoc pulls; never used in k8s.
+      - name: Resolve image tags
         id: tag
-        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "ver=0.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -44,6 +52,7 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
+            il-jerusalem-1.ocir.io/axiwhc5fgu9i/urlshortener-frontend:${{ steps.tag.outputs.ver }}
             il-jerusalem-1.ocir.io/axiwhc5fgu9i/urlshortener-frontend:${{ steps.tag.outputs.sha }}
             il-jerusalem-1.ocir.io/axiwhc5fgu9i/urlshortener-frontend:latest
           cache-from: type=gha
@@ -53,5 +62,6 @@ jobs:
         run: |
           echo "### Image pushed :rocket:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Tag: \`${{ steps.tag.outputs.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Also tagged as: \`latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Version tag (used by Flux): \`${{ steps.tag.outputs.ver }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- SHA tag (traceability):     \`${{ steps.tag.outputs.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Convenience tag:            \`latest\`" >> $GITHUB_STEP_SUMMARY
