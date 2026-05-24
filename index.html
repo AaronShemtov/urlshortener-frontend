@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta property="og:title" content="1ms URL Shortener - Fastest URL Shortening">
+    <meta property="og:description" content="Shorten your links at lightning speed! ⚡ Try it now!">
+    <meta property="og:image" content="https://u.1ms.my/websitebanner.webp">
+    <meta property="og:url" content="https://u.1ms.my">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="1ms URL Shortener">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="1ms URL Shortener">
+    <meta name="twitter:description" content="Shorten your links at lightning speed! ⚡ Try it now!">
+    <meta name="twitter:image" content="https://u.1ms.my/websitebanner.webp">
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="1ms URL Shortener helps you shorten URLs instantly with ease. Get your short links quickly and efficiently.">
+    <meta name="keywords" content="URL Shortener, link shortener, short URL, fast URL shortening, free URL shortener, custom short links, 1ms URL, fast link sharing">
+    <meta name="author" content="Aaron Shemtov, DevOps">
+    <meta name="robots" content="index, follow">
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1ms URL Shortener - Fastest URL Shortening</title>
+    <link rel="icon" type="image/x-icon" href="favicon_round.ico">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            background: url('websitebanner.webp') no-repeat center center/cover;
+            color: white;
+            text-align: center;
+            position: relative;
+        }
+        .container {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        input {
+            padding: 12px;
+            width: 300px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 20px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+            background-color: #ffcc00;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #ffdd44;
+        }
+        .result {
+            display: none; /* hide the result initially */
+            margin-top: 20px;
+            font-size: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            color: #000;
+            font-weight: bold;
+            max-width: 90%;
+        }
+        .loading {
+            display: none;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .result a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .result a:hover {
+            text-decoration: underline;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        /* Mobile-friendly background — switches to portrait-oriented banner
+           on narrow viewports (phones, small tablets in portrait). */
+        @media (max-width: 768px) {
+            body {
+                background: url('mobilefriendly.webp') no-repeat center center/cover;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>1ms Link Shortener</h1>
+        <p>Shorten your links at lightning speed! ⚡</p>
+        
+        <!-- Original URL input -->
+        <input type="text" id="longUrl" placeholder="Enter link to shorten">
+        <button onclick="shortenUrl()">Shorten Now</button>
+        <button onclick="pasteFromClipboard()">Paste</button>
+        <button onclick="clearInput()">Clear</button>
+
+        <!-- Custom code input -->
+        <div style="margin-top: 20px;">
+            <span style="margin-right: 5px;">https://1ms.my/</span>
+            <input type="text" id="customCode" placeholder="[OPTIONAL] Enter custom code - minimum 8 symbols">
+            <button onclick="createCustomUrl()">Create Custom Link</button>
+        </div>
+
+        <p class="loading" id="loading">⏳ Shortening URL...</p>
+        <div class="result" id="result"></div>
+    </div>
+
+    <div class="popup" id="popup">
+        <p id="popupMessage"></p>
+    </div>
+
+    <script>
+        function showPopup(message) {
+            const popup = document.getElementById('popup');
+            document.getElementById('popupMessage').innerText = message;
+            popup.style.display = 'block';
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 700);
+        }
+
+        async function shortenUrl() {
+            const longUrl = document.getElementById('longUrl').value;
+            if (!longUrl) {
+                showPopup("Please enter a valid URL");
+                return;
+            }
+            document.getElementById('loading').style.display = 'block';
+            try {
+                const response = await fetch('/shorten', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: longUrl })
+                });
+                document.getElementById('loading').style.display = 'none';
+                const data = await response.json();
+                if (data.short_url) {
+                    document.getElementById('result').innerHTML = `🚀 Your short link: <a href="${data.short_url}" target="_blank" id="shortUrl">${data.short_url}</a> <button onclick="copyToClipboard()">Copy</button>`;
+                    document.getElementById('result').style.display = 'inline-block';
+                } else {
+                    showPopup("Error shortening URL");
+                }
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                showPopup("Failed to shorten URL");
+            }
+        }
+
+        async function createCustomUrl() {
+            const longUrl = document.getElementById('longUrl').value;
+            const customCode = document.getElementById('customCode').value;
+            if (!longUrl) {
+                showPopup("Please enter a valid URL");
+                return;
+            }
+            if (!customCode) {
+                showPopup("Please enter a custom code");
+                return;
+            }
+            document.getElementById('loading').style.display = 'block';
+            try {
+                const response = await fetch('/createcustom', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: longUrl, code: customCode })
+                });
+                document.getElementById('loading').style.display = 'none';
+                const data = await response.json();
+                if (data.short_url) {
+                    document.getElementById('result').innerHTML = `🚀 Your custom short link: <a href="${data.short_url}" target="_blank" id="shortUrl">${data.short_url}</a> <button onclick="copyToClipboard()">Copy</button>`;
+                    document.getElementById('result').style.display = 'inline-block';
+                } else {
+                    showPopup("Error creating custom URL");
+                }
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                showPopup("Failed to create custom URL");
+            }
+        }
+
+        function pasteFromClipboard() {
+            navigator.clipboard.readText().then(text => {
+                document.getElementById('longUrl').value = text;
+            }).catch(() => {
+                showPopup("Clipboard access failed");
+            });
+        }
+        
+        function clearInput() {
+            document.getElementById('longUrl').value = '';
+        }
+        
+        function copyToClipboard() {
+            const shortUrl = document.getElementById('shortUrl').innerText;
+            navigator.clipboard.writeText(shortUrl).then(() => {
+                showPopup("Link copied!");
+            }).catch(() => {
+                showPopup("Failed to copy URL");
+            });
+        }
+    </script>
+  <footer style="margin-top: 20px; text-align: center; color: white; font-size: 16px; background: rgba(0, 100, 0, 0.8); padding: 10px; border-radius: 5px;">
+        Made by DevOps Aaron Shemtov
+        <a href="https://t.me/ashemtov" target="_blank" style="color: #ffffff; font-weight: bold; text-decoration: underline;">Telegram</a> |
+        <a href="https://linkedin.com/in/aaronshemtov" target="_blank" style="color: #ffffff; font-weight: bold; text-decoration: underline;">LinkedIn</a>
+    </footer>
+</body>
+</html>
