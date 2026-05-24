@@ -39,6 +39,7 @@ jobs:
       #     successful build gets a strictly higher version than the previous.
       #   - <short-sha>       — immutable for traceability / ad-hoc rollback.
       #   - latest            — convenience for ad-hoc pulls; never used in k8s.
+      # 
       - name: Resolve image tags
         id: tag
         run: |
