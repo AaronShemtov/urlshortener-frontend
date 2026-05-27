@@ -1,16 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
-# nginx-unprivileged variant runs as UID 101 — required for restricted PSS.
-# Same image we use for the hello-nginx sanity check in personal-k8s.
+# nginx-unprivileged runs as UID 101 — required to pass restricted PodSecurityStandard.
+# Same image we use for the urlshortener-frontend, so OKE nodes already have it cached.
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 
-# Drop the default config; ours listens on 8080 and adds /healthz + cache headers.
+# Replace the default site config with ours (healthcheck, MIME types, PDF download headers).
 COPY --chown=nginx:nginx nginx.conf /etc/nginx/conf.d/default.conf
 
-# Static assets — desktop banner + mobile banner (chosen via CSS @media query)
-COPY --chown=nginx:nginx index.html              /usr/share/nginx/html/
-COPY --chown=nginx:nginx favicon_round.ico       /usr/share/nginx/html/
-COPY --chown=nginx:nginx websitebanner.webp      /usr/share/nginx/html/
-COPY --chown=nginx:nginx mobilefriendly.webp     /usr/share/nginx/html/
+# Copy all static assets — single COPY of the whole public/ folder so we
+# don't need to enumerate each file here. To add favicon, images, PDFs etc.,
+# drop them into public/ in the repo and rebuild.
+COPY --chown=nginx:nginx public/ /usr/share/nginx/html/
 
 EXPOSE 8080

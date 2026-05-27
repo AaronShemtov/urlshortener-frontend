@@ -33,13 +33,10 @@ jobs:
           username: axiwhc5fgu9i/shemtov.aaron@gmail.com
           password: ${{ secrets.OCIR_AUTH_TOKEN }}
 
-      # We tag the image three ways:
-      #   - 0.0.<run_number> — auto-incrementing semver used by Flux ImagePolicy.
-      #     github.run_number monotonically increases per workflow file, so each
-      #     successful build gets a strictly higher version than the previous.
-      #   - <short-sha>       — immutable for traceability / ad-hoc rollback.
-      #   - latest            — convenience for ad-hoc pulls; never used in k8s.
-      # 
+      # Three tags per build:
+      #   - 0.0.<run_number> — monotonic semver consumed by Flux ImagePolicy
+      #   - <short-sha>       — immutable, traceable for rollback
+      #   - latest            — convenience; never used by k8s manifests
       - name: Resolve image tags
         id: tag
         run: |
