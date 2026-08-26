@@ -343,14 +343,14 @@
 
     try {
       var endpoint, body;
-      if (optCustom.checked) {
+        if (optCustom.checked) {
         var slug = customSlug.value.trim();
         if (!/^[a-z0-9-]{3,32}$/.test(slug)) {
           showError('Custom code must be 3-32 chars: lowercase letters, digits, hyphen.');
           return;
         }
         endpoint = '/createcustom';
-        body = { url: url, custom: slug };
+        body = { url: url, code: slug };
       } else {
         endpoint = '/shorten';
         body = { url: url };
