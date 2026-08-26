@@ -302,17 +302,54 @@
         }
       }
 
-      .foot { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); }
-      .foot-inner { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
-      .foot-col { min-width: 0; }
-      .tag-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-      .tag-pill { display: inline-flex; padding: 6px 10px; border-radius: 999px; background: var(--paper); border: 1px solid var(--line); font-family: var(--mono); font-size: 12px; }
-      .privacy-line { font-size: 13px; color: var(--mute); margin-bottom: 6px; }
-      .repo-links a { color: inherit; text-decoration: none; font-family: var(--mono); }
+      .foot {
+        margin-top: 36px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+      .foot-inner {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        align-items: start;
+      }
+      .foot-col {
+        min-width: 0;
+      }
+      .tag-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .tag-pill {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+      .privacy-line {
+        font-size: 13px;
+        color: var(--mute);
+        margin-bottom: 6px;
+      }
+      .repo-links a {
+        color: inherit;
+        text-decoration: none;
+        font-family: var(--mono);
+      }
 
       @media (max-width: 720px) {
-        .foot-inner { grid-template-columns: 1fr; gap: 10px; }
-        .tag-row { justify-content: flex-start; }
+        .foot-inner {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .tag-row {
+          justify-content: flex-start;
+        }
       }
     </style>
   </head>
@@ -435,26 +472,7 @@
         </div>
       </section>
 
-      <footer class="foot">
-        <div class="foot-inner">
-          <div class="foot-col foot-tags">
-            <div class="tag-row" aria-hidden="false">
-              <span class="tag-pill">go backend</span>
-              <span class="tag-pill">flux gitops</span>
-              <span class="tag-pill">cloudflare tunnel</span>
-            </div>
-          </div>
-
-          <div class="foot-col foot-privacy">
-            <div class="privacy-line">no tracking · no ads · no logs.</div>
-            <div class="learn-more"><a href="https://infra.1ms.my/" target="_blank" rel="noopener noreferrer" aria-label="See the architecture on infra.1ms.my (opens in new tab)">see the architecture →</a></div>
-          </div>
-
-          <div class="foot-col foot-links">
-            <div class="repo-links"><a href="https://github.com/AaronShemtov/urlshortener-backend" target="_blank" rel="noopener noreferrer" aria-label="Backend repository (opens in new tab)">backend</a> · <a href="https://github.com/AaronShemtov/urlshortener-frontend" target="_blank" rel="noopener noreferrer" aria-label="Frontend repository (opens in new tab)">frontend</a></div>
-          </div>
-        </div>
-      </footer>
+      <!-- footer removed for minimalism -->
     </main>
 
     <script>
