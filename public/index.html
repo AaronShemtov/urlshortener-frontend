@@ -421,6 +421,28 @@
         <h1 class="title"><span class="lt">/</span>1ms.my</h1>
         <div class="title-tag">
           curl -X POST 1ms.my/shorten<span class="blink"></span>
+          <details style="display: inline-block; margin-left: 12px">
+            <summary
+              style="cursor: pointer; font-family: var(--mono); font-size: 13px"
+            >
+              Show example
+            </summary>
+            <pre
+              style="
+                margin: 8px 0;
+                background: var(--code-bg);
+                padding: 10px;
+                border-radius: 6px;
+                overflow: auto;
+                font-family: var(--mono);
+                font-size: 13px;
+              "
+            >
+curl -v -X POST https://1ms.my/shorten \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com/some/long/path"}'</pre
+            >
+          </details>
         </div>
 
         <!-- hero lede removed to declutter homepage -->
