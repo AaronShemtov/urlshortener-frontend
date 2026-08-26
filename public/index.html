@@ -166,17 +166,7 @@
     <h1 class="title"><span class="lt">/</span>1ms.my</h1>
     <div class="title-tag">curl -X POST 1ms.my/shorten<span class="blink"></span></div>
 
-    <p class="lede">
-      A privacy-respecting <strong>URL shortener</strong>. No tracking, no ads, no logs beyond what nginx writes. Built on a Go backend running in Kubernetes, with the data stored in Oracle Autonomous JSON Database. The infrastructure behind it is documented in detail on <a href="https://infra.1ms.my/">infra.1ms.my</a>.
-    </p>
-
-    <div class="tag-row">
-      <span class="tag-pill">go backend</span>
-      <span class="tag-pill">writer / reader split</span>
-      <span class="tag-pill">soda rest api</span>
-      <span class="tag-pill">flux gitops</span>
-      <span class="tag-pill">cloudflare tunnel</span>
-    </div>
+    <!-- hero lede removed to declutter homepage -->
 
     <!-- SHORTENER FORM -->
     <div class="shorten-card">
@@ -245,31 +235,38 @@
       <span class="sec-num">02 ·</span>
       <h2 class="sec-title">Behind the scenes</h2>
     </div>
-    <p class="sec-sub">This shortener is the live application running on the platform documented at infra.1ms.my. It is built, tested and deployed entirely through GitOps — every change starts as a Git commit.</p>
+    <p class="sec-sub">This shortener is the live application on the platform documented at infra.1ms.my. It is built, tested and deployed via GitOps — every change starts as a Git commit.</p>
 
     <div class="cols-2">
       <div class="panel">
         <h4>Stack</h4>
         <ul>
-          <li><strong>Backend</strong> — Go service, distroless image, ~12 MB compressed. Standard library only — no Oracle client libraries.<span class="why">writer / reader split via MODE env var · 2 replicas each</span></li>
-          <li><strong>Storage</strong> — Oracle Autonomous JSON Database, accessed via SODA REST.<span class="why">basic auth over HTTPS · same region as the cluster</span></li>
-          <li><strong>Frontend</strong> — this page; static HTML + JS, served by nginx-unprivileged.<span class="why">no framework · no build step · ~20 MB image</span></li>
-          <li><strong>Ingress</strong> — Cloudflare Tunnel → Envoy Gateway → HTTPRoute → Service.<span class="why">cluster has no public IP · zero inbound ports</span></li>
+          <li><strong>Backend</strong> — Go service, distroless image (~12 MB). Standard library only; no Oracle client libraries.<span class="why">writer/reader split via MODE env var · 2 replicas</span></li>
+          <li><strong>Storage</strong> — Oracle Autonomous JSON Database accessed via SODA REST.<span class="why">basic auth over HTTPS · same region</span></li>
+          <li><strong>Frontend</strong> — this page: static HTML + JS, served by nginx-unprivileged.<span class="why">no framework · no build step</span></li>
+          <li><strong>Ingress</strong> — Cloudflare Tunnel → Envoy Gateway → HTTPRoute → Service.<span class="why">no public cluster IP · zero inbound ports</span></li>
         </ul>
       </div>
       <div class="panel">
         <h4>Operations</h4>
         <ul>
-          <li><strong>Build</strong> — GitHub Actions on every push to <code>main</code>.<span class="why">linux/arm64 multi-tag · semver + sha + latest</span></li>
-          <li><strong>Promote</strong> — Flux Image Automation watches OCIR every 2 minutes.<span class="why">commits tag updates back to personal-k8s via SSH</span></li>
-          <li><strong>Deploy</strong> — kustomize-controller applies the new manifest, rolling update kicks in.<span class="why">~3 minutes from git push to running pod</span></li>
-          <li><strong>Secrets</strong> — External Secrets Operator reconciles ADB password from OCI Vault.<span class="why">no static credentials anywhere · instance principal auth</span></li>
+          <li><strong>Build</strong> — GitHub Actions run on every push to <code>main</code>.<span class="why">linux/arm64 multi-tag · semver + sha</span></li>
+          <li><strong>Promote</strong> — Flux Image Automation watches OCIR and updates manifests.<span class="why">commits tag updates back to personal-k8s</span></li>
+          <li><strong>Deploy</strong> — kustomize-controller applies manifests; rolling update follows.<span class="why">~3 minutes from push to running pod</span></li>
+          <li><strong>Secrets</strong> — External Secrets Operator syncs ADB password from OCI Vault.<span class="why">no static credentials · instance principal auth</span></li>
         </ul>
       </div>
     </div>
   </section>
 
   <footer class="foot">
+    <div class="tag-row">
+      <span class="tag-pill">go backend</span>
+      <span class="tag-pill">writer / reader split</span>
+      <span class="tag-pill">soda rest api</span>
+      <span class="tag-pill">flux gitops</span>
+      <span class="tag-pill">cloudflare tunnel</span>
+    </div>
     <div>
       <span class="tag">no tracking · no ads · no logs.</span>
       <a href="https://infra.1ms.my/">see the architecture →</a>
