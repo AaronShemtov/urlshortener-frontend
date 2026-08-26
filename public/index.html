@@ -472,16 +472,11 @@
             <ul>
               <li>
                 <strong>Backend</strong> — Go service, distroless image (~12
-                MB). Standard library only; no Oracle client libraries.<span
-                  class="why"
-                  >writer/reader split via MODE env var · 2 replicas</span
-                >
+                MB). Standard library only; no Oracle client libraries.
               </li>
               <li>
-                <strong>Storage</strong> — Oracle Autonomous JSON Database
-                accessed via SODA REST.<span class="why"
-                  >basic auth over HTTPS · same region</span
-                >
+                <strong>Storage</strong> — Oracle Autonomous JSON Database.
+                <span class="why">basic auth over HTTPS · same region</span>
               </li>
               <li>
                 <strong>Frontend</strong> — this page: static HTML + JS, served
@@ -532,8 +527,6 @@
       <footer class="foot">
         <div class="tag-row">
           <span class="tag-pill">go backend</span>
-          <span class="tag-pill">writer / reader split</span>
-          <span class="tag-pill">soda rest api</span>
           <span class="tag-pill">flux gitops</span>
           <span class="tag-pill">cloudflare tunnel</span>
         </div>
