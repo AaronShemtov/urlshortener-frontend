@@ -230,7 +230,7 @@
       }
 
       .quick-facts {
-        margin-top: 36px;
+        margin-top: 18px;
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 14px;
@@ -244,7 +244,7 @@
         background: var(--paper);
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 18px 20px;
+        padding: 14px 16px;
       }
       .qf-card h3 {
         margin: 0 0 6px;
@@ -262,24 +262,17 @@
         line-height: 1.5;
       }
 
-      .terminal {
-        margin: 18px 0 0;
-        background: var(--code-bg);
-        color: var(--code-ink);
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        padding: 14px 16px;
+      .endpoint-details summary {
+        cursor: pointer;
         font-family: var(--mono);
-        font-size: 12.5px;
-        line-height: 1.6;
-        overflow-x: auto;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
       }
-      .terminal .prompt {
-        color: #82b4ff;
-      }
-      .terminal .comment {
-        color: #6b6755;
-        font-style: italic;
+      @media (min-width: 721px) {
+        .endpoint-details summary {
+          display: none;
+        }
       }
     </style>
   </head>
@@ -402,126 +395,35 @@
         </div>
       </section>
 
-      <!-- HOW IT WORKS -->
-      <section class="block" id="how-it-works">
+      <!-- ABOUT -->
+      <section class="block" id="about">
         <div class="sec-head">
           <span class="sec-num">01 ·</span>
-          <h2 class="sec-title">How it works</h2>
+          <h2 class="sec-title">About</h2>
         </div>
         <p class="sec-sub">
-          Two HTTP endpoints, one per concern. The same backend image runs in
-          two modes — writer and reader — selected by an environment variable.
+          1ms.my is a privacy-respecting URL shortener, built and deployed as a
+          small GitOps-managed Kubernetes service.
+          <a href="https://infra.1ms.my/">Learn more</a>
         </p>
 
-        <div class="quick-facts">
-          <div class="qf-card">
-            <h3>POST /shorten</h3>
-            <p>
-              Random 6-character base62 code generated server-side. Writer pod
-              inserts the document into the Autonomous JSON Database via SODA
-              REST PUT. Returns the short URL.
-            </p>
+        <details class="endpoint-details" id="endpoint-details" open>
+          <summary>Show details</summary>
+          <div class="quick-facts">
+            <div class="qf-card">
+              <h3>POST /shorten</h3>
+              <p>Creates a short URL with a generated code.</p>
+            </div>
+            <div class="qf-card">
+              <h3>POST /createcustom</h3>
+              <p>Creates a short URL with a custom code.</p>
+            </div>
+            <div class="qf-card">
+              <h3>GET /{code}</h3>
+              <p>Redirects visitors to the saved destination.</p>
+            </div>
           </div>
-          <div class="qf-card">
-            <h3>POST /createcustom</h3>
-            <p>
-              Custom slug provided by the caller. Writer pod validates the slug,
-              checks for collision, then inserts. Returns 409 Conflict if the
-              slug is taken.
-            </p>
-          </div>
-          <div class="qf-card">
-            <h3>GET /{code}</h3>
-            <p>
-              Reader pod fetches the document by code and returns an HTTP 301
-              redirect. Reader scales independently of writer — most real-world
-              shortener traffic is reads.
-            </p>
-          </div>
-        </div>
-
-        <div class="terminal" aria-label="example API call">
-          <span class="prompt">$</span> curl -X POST https://1ms.my/shorten \ -H
-          <span style="color: #b9f0a8">"Content-Type: application/json"</span> \
-          -d
-          <span style="color: #b9f0a8"
-            >'{"url":"https://docs.kubernetes.io/some/long/path"}'</span
-          >
-
-          <span class="comment"
-            ># {"short_url":"https://1ms.my/abc123","code":"abc123"}</span
-          >
-        </div>
-      </section>
-
-      <!-- BEHIND THE SCENES -->
-      <section class="block" id="behind">
-        <div class="sec-head">
-          <span class="sec-num">02 ·</span>
-          <h2 class="sec-title">Behind the scenes</h2>
-        </div>
-        <p class="sec-sub">
-          This shortener is the live application on the platform documented at
-          infra.1ms.my. It is built, tested and deployed via GitOps — every
-          change starts as a Git commit.
-        </p>
-
-        <div class="cols-2">
-          <div class="panel">
-            <h4>Stack</h4>
-            <ul>
-              <li>
-                <strong>Backend</strong> — Go service, distroless image (~12
-                MB). Standard library only; no Oracle client libraries.
-              </li>
-              <li>
-                <strong>Storage</strong> — Oracle Autonomous JSON Database.
-                <span class="why">basic auth over HTTPS · same region</span>
-              </li>
-              <li>
-                <strong>Frontend</strong> — this page: static HTML + JS, served
-                by nginx-unprivileged.<span class="why"
-                  >no framework · no build step</span
-                >
-              </li>
-              <li>
-                <strong>Ingress</strong> — Cloudflare Tunnel → Envoy Gateway →
-                HTTPRoute → Service.<span class="why"
-                  >no public cluster IP · zero inbound ports</span
-                >
-              </li>
-            </ul>
-          </div>
-          <div class="panel">
-            <h4>Operations</h4>
-            <ul>
-              <li>
-                <strong>Build</strong> — GitHub Actions run on every push to
-                <code>main</code>.<span class="why"
-                  >linux/arm64 multi-tag · semver + sha</span
-                >
-              </li>
-              <li>
-                <strong>Promote</strong> — Flux Image Automation watches OCIR
-                and updates manifests.<span class="why"
-                  >commits tag updates back to personal-k8s</span
-                >
-              </li>
-              <li>
-                <strong>Deploy</strong> — kustomize-controller applies
-                manifests; rolling update follows.<span class="why"
-                  >~3 minutes from push to running pod</span
-                >
-              </li>
-              <li>
-                <strong>Secrets</strong> — External Secrets Operator syncs ADB
-                password from OCI Vault.<span class="why"
-                  >no static credentials · instance principal auth</span
-                >
-              </li>
-            </ul>
-          </div>
-        </div>
+        </details>
       </section>
 
       <footer class="foot">
@@ -573,6 +475,18 @@
             document.documentElement.getAttribute("data-theme") || "light";
           applyTheme(cur === "light" ? "dark" : "light");
         });
+
+      var endpointDetails = document.getElementById("endpoint-details");
+      var mobileBreakpoint = window.matchMedia("(max-width: 720px)");
+      function syncEndpointDetails() {
+        endpointDetails.open = !mobileBreakpoint.matches;
+      }
+      syncEndpointDetails();
+      if (mobileBreakpoint.addEventListener) {
+        mobileBreakpoint.addEventListener("change", syncEndpointDetails);
+      } else {
+        mobileBreakpoint.addListener(syncEndpointDetails);
+      }
 
       // ===== Custom slug toggle =====
       var optCustom = document.getElementById("opt-custom");
