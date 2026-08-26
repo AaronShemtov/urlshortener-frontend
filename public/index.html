@@ -1,412 +1,722 @@
 <!doctype html>
 <html lang="en" data-theme="light">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>1ms — URL Shortener</title>
-<meta name="description" content="A privacy-respecting URL shortener. Go backend on Kubernetes, Oracle Autonomous JSON Database, deployed via Flux GitOps." />
-<script>
-  (function(){ try { var t = localStorage.getItem('theme') || 'light'; document.documentElement.setAttribute('data-theme', t); } catch(e){} })();
-</script>
-<link rel="icon" type="image/x-icon" href="/favicon.ico" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/blueprint.css" />
-<style>
-  /* ====== Shortener-specific extensions to blueprint ====== */
-  .shorten-card {
-    background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
-    padding: 32px; margin: 28px 0 0;
-    background-image:
-      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-    background-size: 24px 24px;
-    position: relative;
-  }
-  .shorten-card::before, .shorten-card::after {
-    content: ""; position: absolute; width: 12px; height: 12px;
-    border-color: var(--accent); border-style: solid; border-width: 0;
-  }
-  .shorten-card::before { top: -1px; left: -1px; border-top-width: 1.5px; border-left-width: 1.5px; }
-  .shorten-card::after  { bottom: -1px; right: -1px; border-bottom-width: 1.5px; border-right-width: 1.5px; }
-
-  .input-label {
-    font-family: var(--mono); font-size: 11px; color: var(--mute);
-    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;
-    display: block;
-  }
-  .input-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-  .input-row .url-input {
-    flex: 1; min-width: 240px;
-    padding: 12px 14px; background: var(--bg); border: 1px solid var(--line);
-    border-radius: 6px; color: var(--ink); font-family: var(--mono); font-size: 14px;
-    transition: border-color 0.15s;
-  }
-  .input-row .url-input:focus { outline: none; border-color: var(--accent); }
-  .input-row .url-input::placeholder { color: var(--mute); }
-
-  .btn-go {
-    padding: 12px 22px; background: var(--accent); color: white;
-    border: 1px solid var(--accent); border-radius: 6px;
-    font-family: var(--mono); font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: background 0.15s;
-    white-space: nowrap;
-  }
-  .btn-go:hover { background: color-mix(in oklab, var(--accent) 85%, black); }
-  .btn-go:disabled { opacity: 0.6; cursor: wait; }
-  html[data-theme="dark"] .btn-go { color: var(--bg); }
-
-  .opt-row {
-    display: flex; gap: 14px; align-items: center;
-    font-family: var(--mono); font-size: 12px; color: var(--mute);
-    margin-top: 8px; flex-wrap: wrap;
-  }
-  .opt-row label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
-  .opt-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; }
-  .opt-row .custom-slug {
-    margin-left: 10px; padding: 6px 10px; background: var(--bg);
-    border: 1px solid var(--line); border-radius: 4px;
-    color: var(--ink); font-family: var(--mono); font-size: 12px;
-    width: 160px;
-  }
-  .opt-row .custom-slug:focus { outline: none; border-color: var(--accent); }
-  .opt-row .custom-slug:disabled { opacity: 0.4; }
-
-  .result-box {
-    margin-top: 22px; padding: 18px 20px;
-    background: color-mix(in oklab, var(--accent-soft) 40%, var(--paper));
-    border: 1px solid var(--accent); border-radius: 8px;
-    font-family: var(--mono); display: none; align-items: center; gap: 14px;
-    flex-wrap: wrap;
-  }
-  .result-box.show { display: flex; }
-  .result-box .result-label { font-size: 11px; color: var(--mute); text-transform: uppercase; letter-spacing: 0.08em; }
-  .result-box .result-url {
-    font-size: 16px; color: var(--accent); font-weight: 600;
-    word-break: break-all; flex: 1; min-width: 0;
-  }
-  .result-box .result-url a { color: inherit; }
-  .result-box .copy-btn {
-    padding: 8px 14px; background: var(--paper); border: 1px solid var(--line);
-    border-radius: 5px; font-family: var(--mono); font-size: 12px;
-    color: var(--ink); cursor: pointer; transition: all 0.15s;
-  }
-  .result-box .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .result-box .copy-btn.copied { background: var(--live); color: white; border-color: var(--live); }
-
-  .error-box {
-    margin-top: 14px; padding: 12px 16px;
-    background: color-mix(in oklab, var(--danger) 10%, var(--paper));
-    border: 1px solid color-mix(in oklab, var(--danger) 40%, var(--line));
-    border-radius: 6px; font-family: var(--mono); font-size: 12.5px; color: var(--danger);
-    display: none;
-  }
-  .error-box.show { display: block; }
-
-  .quick-facts {
-    margin-top: 36px;
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
-  }
-  @media (max-width: 720px) { .quick-facts { grid-template-columns: 1fr; } }
-  .qf-card {
-    background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
-    padding: 18px 20px;
-  }
-  .qf-card h3 {
-    margin: 0 0 6px; font-family: var(--mono); font-size: 11px;
-    text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 600;
-  }
-  .qf-card p { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
-
-  .terminal {
-    margin: 18px 0 0;
-    background: var(--code-bg); color: var(--code-ink);
-    border: 1px solid var(--line); border-radius: 6px;
-    padding: 14px 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
-    overflow-x: auto;
-  }
-  .terminal .prompt { color: #82b4ff; }
-  .terminal .comment { color: #6b6755; font-style: italic; }
-</style>
-</head>
-<body>
-
-<div class="ribbon">
-  <div class="ribbon-inner">
-    <div class="ribbon-left">
-      <span class="brand">Aaron Shemtov <span style="color:var(--mute)">· url shortener</span></span>
-    </div>
-    <div style="display:flex; align-items:center; gap:18px;">
-      <nav class="ribbon-nav">
-        <a href="https://1ms.my/" class="current">1ms.my</a>
-        <a href="https://cv.1ms.my/">cv</a>
-        <a href="https://infra.1ms.my/">platform</a>
-        <a href="https://pwd.1ms.my/">pwd</a>
-      </nav>
-      <button class="theme-btn" id="theme-btn" aria-label="Toggle theme" title="Toggle theme">
-        <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
-          <circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-        <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-      </button>
-    </div>
-  </div>
-</div>
-
-<main class="wrap">
-
-  <section class="hero">
-    <div class="crumbs">
-      <span>~/aaronshemtov</span><span class="sep">/</span><span>url-shortener</span>
-    </div>
-
-    <h1 class="title"><span class="lt">/</span>1ms.my</h1>
-    <div class="title-tag">curl -X POST 1ms.my/shorten<span class="blink"></span></div>
-
-    <!-- hero lede removed to declutter homepage -->
-
-    <!-- SHORTENER FORM -->
-    <div class="shorten-card">
-      <label class="input-label" for="long-url">Enter a URL to shorten</label>
-      <div class="input-row">
-        <input id="long-url" class="url-input" type="url" placeholder="https://example.com/some/very/long/url" />
-        <button id="shorten-btn" class="btn-go">Shorten</button>
-      </div>
-
-      <div class="opt-row">
-        <label>
-          <input type="checkbox" id="opt-custom" />
-          <span>Custom short code</span>
-        </label>
-        <input id="custom-slug" class="custom-slug" type="text" placeholder="my-link" maxlength="32" disabled />
-        <span style="margin-left:auto; color:var(--mute); font-size:11px;">3 – 32 characters, lowercase letters / digits / hyphen</span>
-      </div>
-
-      <div id="error-box" class="error-box"></div>
-
-      <div id="result-box" class="result-box">
-        <div>
-          <div class="result-label">Your short URL</div>
-          <div class="result-url"><a id="result-url" href="#" target="_blank" rel="noopener"></a></div>
-        </div>
-        <button id="copy-btn" class="copy-btn" type="button">Copy</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- HOW IT WORKS -->
-  <section class="block" id="how-it-works">
-    <div class="sec-head">
-      <span class="sec-num">01 ·</span>
-      <h2 class="sec-title">How it works</h2>
-    </div>
-    <p class="sec-sub">Two HTTP endpoints, one per concern. The same backend image runs in two modes — writer and reader — selected by an environment variable.</p>
-
-    <div class="quick-facts">
-      <div class="qf-card">
-        <h3>POST /shorten</h3>
-        <p>Random 6-character base62 code generated server-side. Writer pod inserts the document into the Autonomous JSON Database via SODA REST PUT. Returns the short URL.</p>
-      </div>
-      <div class="qf-card">
-        <h3>POST /createcustom</h3>
-        <p>Custom slug provided by the caller. Writer pod validates the slug, checks for collision, then inserts. Returns 409 Conflict if the slug is taken.</p>
-      </div>
-      <div class="qf-card">
-        <h3>GET /{code}</h3>
-        <p>Reader pod fetches the document by code and returns an HTTP 301 redirect. Reader scales independently of writer — most real-world shortener traffic is reads.</p>
-      </div>
-    </div>
-
-    <div class="terminal" aria-label="example API call">
-<span class="prompt">$</span> curl -X POST https://1ms.my/shorten \
-    -H <span style="color:#b9f0a8">"Content-Type: application/json"</span> \
-    -d <span style="color:#b9f0a8">'{"url":"https://docs.kubernetes.io/some/long/path"}'</span>
-
-<span class="comment"># {"short_url":"https://1ms.my/abc123","code":"abc123"}</span>
-    </div>
-  </section>
-
-  <!-- BEHIND THE SCENES -->
-  <section class="block" id="behind">
-    <div class="sec-head">
-      <span class="sec-num">02 ·</span>
-      <h2 class="sec-title">Behind the scenes</h2>
-    </div>
-    <p class="sec-sub">This shortener is the live application on the platform documented at infra.1ms.my. It is built, tested and deployed via GitOps — every change starts as a Git commit.</p>
-
-    <div class="cols-2">
-      <div class="panel">
-        <h4>Stack</h4>
-        <ul>
-          <li><strong>Backend</strong> — Go service, distroless image (~12 MB). Standard library only; no Oracle client libraries.<span class="why">writer/reader split via MODE env var · 2 replicas</span></li>
-          <li><strong>Storage</strong> — Oracle Autonomous JSON Database accessed via SODA REST.<span class="why">basic auth over HTTPS · same region</span></li>
-          <li><strong>Frontend</strong> — this page: static HTML + JS, served by nginx-unprivileged.<span class="why">no framework · no build step</span></li>
-          <li><strong>Ingress</strong> — Cloudflare Tunnel → Envoy Gateway → HTTPRoute → Service.<span class="why">no public cluster IP · zero inbound ports</span></li>
-        </ul>
-      </div>
-      <div class="panel">
-        <h4>Operations</h4>
-        <ul>
-          <li><strong>Build</strong> — GitHub Actions run on every push to <code>main</code>.<span class="why">linux/arm64 multi-tag · semver + sha</span></li>
-          <li><strong>Promote</strong> — Flux Image Automation watches OCIR and updates manifests.<span class="why">commits tag updates back to personal-k8s</span></li>
-          <li><strong>Deploy</strong> — kustomize-controller applies manifests; rolling update follows.<span class="why">~3 minutes from push to running pod</span></li>
-          <li><strong>Secrets</strong> — External Secrets Operator syncs ADB password from OCI Vault.<span class="why">no static credentials · instance principal auth</span></li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <footer class="foot">
-    <div class="tag-row">
-      <span class="tag-pill">go backend</span>
-      <span class="tag-pill">writer / reader split</span>
-      <span class="tag-pill">soda rest api</span>
-      <span class="tag-pill">flux gitops</span>
-      <span class="tag-pill">cloudflare tunnel</span>
-    </div>
-    <div>
-      <span class="tag">no tracking · no ads · no logs.</span>
-      <a href="https://infra.1ms.my/">see the architecture →</a>
-    </div>
-    <div>
-      <a href="https://github.com/AaronShemtov/urlshortener-backend">backend</a>
-      ·
-      <a href="https://github.com/AaronShemtov/urlshortener-frontend">frontend</a>
-    </div>
-  </footer>
-
-</main>
-
-<script>
-  // ===== Theme toggle (shared pattern across all 1ms.my sites) =====
-  var sun = document.getElementById('icon-sun');
-  var moon = document.getElementById('icon-moon');
-  function applyTheme(t){
-    document.documentElement.setAttribute('data-theme', t);
-    if (t === 'dark') { sun.style.display = ''; moon.style.display = 'none'; }
-    else              { sun.style.display = 'none'; moon.style.display = ''; }
-    try { localStorage.setItem('theme', t); } catch(e){}
-  }
-  applyTheme(document.documentElement.getAttribute('data-theme') || 'light');
-  document.getElementById('theme-btn').addEventListener('click', function(){
-    var cur = document.documentElement.getAttribute('data-theme') || 'light';
-    applyTheme(cur === 'light' ? 'dark' : 'light');
-  });
-
-  // ===== Custom slug toggle =====
-  var optCustom = document.getElementById('opt-custom');
-  var customSlug = document.getElementById('custom-slug');
-  optCustom.addEventListener('change', function(){
-    customSlug.disabled = !optCustom.checked;
-    if (optCustom.checked) customSlug.focus();
-  });
-
-  // ===== Shorten handler =====
-  var longUrl = document.getElementById('long-url');
-  var shortenBtn = document.getElementById('shorten-btn');
-  var resultBox = document.getElementById('result-box');
-  var resultUrl = document.getElementById('result-url');
-  var errorBox = document.getElementById('error-box');
-  var copyBtn = document.getElementById('copy-btn');
-
-  function showError(msg) {
-    errorBox.textContent = '✗ ' + msg;
-    errorBox.classList.add('show');
-    resultBox.classList.remove('show');
-  }
-  function showResult(url) {
-    resultUrl.textContent = url;
-    resultUrl.href = url;
-    resultBox.classList.add('show');
-    errorBox.classList.remove('show');
-  }
-  function clearMessages() {
-    errorBox.classList.remove('show');
-    resultBox.classList.remove('show');
-  }
-
-  async function doShorten() {
-    var url = longUrl.value.trim();
-    if (!url) { showError('Enter a URL to shorten.'); return; }
-    try { new URL(url); } catch(e) { showError('That does not look like a valid URL. Include the scheme (https://...).'); return; }
-
-    clearMessages();
-    shortenBtn.disabled = true;
-    var origLabel = shortenBtn.textContent;
-    shortenBtn.textContent = 'Shortening...';
-
-    try {
-      var endpoint, body;
-        if (optCustom.checked) {
-        var slug = customSlug.value.trim();
-        if (!/^[a-z0-9-]{3,32}$/.test(slug)) {
-          showError('Custom code must be 3-32 chars: lowercase letters, digits, hyphen.');
-          return;
-        }
-        endpoint = '/createcustom';
-        body = { url: url, code: slug };
-      } else {
-        endpoint = '/shorten';
-        body = { url: url };
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>1ms — URL Shortener</title>
+    <meta
+      name="description"
+      content="A privacy-respecting URL shortener. Go backend on Kubernetes, Oracle Autonomous JSON Database, deployed via Flux GitOps."
+    />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("theme") || "light";
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/blueprint.css" />
+    <style>
+      /* ====== Shortener-specific extensions to blueprint ====== */
+      .shorten-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 32px;
+        margin: 28px 0 0;
+        background-image:
+          linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+        background-size: 24px 24px;
+        position: relative;
+      }
+      .shorten-card::before,
+      .shorten-card::after {
+        content: "";
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-color: var(--accent);
+        border-style: solid;
+        border-width: 0;
+      }
+      .shorten-card::before {
+        top: -1px;
+        left: -1px;
+        border-top-width: 1.5px;
+        border-left-width: 1.5px;
+      }
+      .shorten-card::after {
+        bottom: -1px;
+        right: -1px;
+        border-bottom-width: 1.5px;
+        border-right-width: 1.5px;
       }
 
-      var resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+      .input-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--mute);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: block;
+      }
+      .input-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      .input-row .url-input {
+        flex: 1;
+        min-width: 240px;
+        padding: 12px 14px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--ink);
+        font-family: var(--mono);
+        font-size: 14px;
+        transition: border-color 0.15s;
+      }
+      .input-row .url-input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      .input-row .url-input::placeholder {
+        color: var(--mute);
+      }
+
+      .btn-go {
+        padding: 12px 22px;
+        background: var(--accent);
+        color: white;
+        border: 1px solid var(--accent);
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+        white-space: nowrap;
+      }
+      .btn-go:hover {
+        background: color-mix(in oklab, var(--accent) 85%, black);
+      }
+      .btn-go:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+      html[data-theme="dark"] .btn-go {
+        color: var(--bg);
+      }
+
+      .opt-row {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--mute);
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+      .opt-row label {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        cursor: pointer;
+      }
+      .opt-row input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+      .opt-row .custom-slug {
+        margin-left: 10px;
+        padding: 6px 10px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        color: var(--ink);
+        font-family: var(--mono);
+        font-size: 12px;
+        width: 160px;
+      }
+      .opt-row .custom-slug:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      .opt-row .custom-slug:disabled {
+        opacity: 0.4;
+      }
+
+      .result-box {
+        margin-top: 22px;
+        padding: 18px 20px;
+        background: color-mix(in oklab, var(--accent-soft) 40%, var(--paper));
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        font-family: var(--mono);
+        display: none;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .result-box.show {
+        display: flex;
+      }
+      .result-box .result-label {
+        font-size: 11px;
+        color: var(--mute);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .result-box .result-url {
+        font-size: 16px;
+        color: var(--accent);
+        font-weight: 600;
+        word-break: break-all;
+        flex: 1;
+        min-width: 0;
+      }
+      .result-box .result-url a {
+        color: inherit;
+      }
+      .result-box .copy-btn {
+        padding: 8px 14px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--ink);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .result-box .copy-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .result-box .copy-btn.copied {
+        background: var(--live);
+        color: white;
+        border-color: var(--live);
+      }
+
+      .error-box {
+        margin-top: 14px;
+        padding: 12px 16px;
+        background: color-mix(in oklab, var(--danger) 10%, var(--paper));
+        border: 1px solid color-mix(in oklab, var(--danger) 40%, var(--line));
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        color: var(--danger);
+        display: none;
+      }
+      .error-box.show {
+        display: block;
+      }
+
+      .quick-facts {
+        margin-top: 36px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      @media (max-width: 720px) {
+        .quick-facts {
+          grid-template-columns: 1fr;
+        }
+      }
+      .qf-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 18px 20px;
+      }
+      .qf-card h3 {
+        margin: 0 0 6px;
+        font-family: var(--mono);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .qf-card p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--ink-2);
+        line-height: 1.5;
+      }
+
+      .terminal {
+        margin: 18px 0 0;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 14px 16px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        line-height: 1.6;
+        overflow-x: auto;
+      }
+      .terminal .prompt {
+        color: #82b4ff;
+      }
+      .terminal .comment {
+        color: #6b6755;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ribbon">
+      <div class="ribbon-inner">
+        <div class="ribbon-left">
+          <span class="brand"
+            >Aaron Shemtov
+            <span style="color: var(--mute)">· url shortener</span></span
+          >
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px">
+          <nav class="ribbon-nav">
+            <a href="https://1ms.my/" class="current">1ms.my</a>
+            <a href="https://cv.1ms.my/">cv</a>
+            <a href="https://infra.1ms.my/">platform</a>
+            <a href="https://pwd.1ms.my/">pwd</a>
+          </nav>
+          <button
+            class="theme-btn"
+            id="theme-btn"
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
+            <svg
+              id="icon-sun"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              style="display: none"
+            >
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg
+              id="icon-moon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <main class="wrap">
+      <section class="hero">
+        <div class="crumbs">
+          <span>~/aaronshemtov</span><span class="sep">/</span
+          ><span>url-shortener</span>
+        </div>
+
+        <h1 class="title"><span class="lt">/</span>1ms.my</h1>
+        <div class="title-tag">
+          curl -X POST 1ms.my/shorten<span class="blink"></span>
+        </div>
+
+        <!-- hero lede removed to declutter homepage -->
+
+        <!-- SHORTENER FORM -->
+        <div class="shorten-card">
+          <label class="input-label" for="long-url"
+            >Enter a URL to shorten</label
+          >
+          <div class="input-row">
+            <input
+              id="long-url"
+              class="url-input"
+              type="url"
+              placeholder="https://example.com/some/very/long/url"
+            />
+            <button id="shorten-btn" class="btn-go">Shorten</button>
+          </div>
+
+          <div class="opt-row">
+            <label>
+              <input type="checkbox" id="opt-custom" />
+              <span>Custom short code</span>
+            </label>
+            <input
+              id="custom-slug"
+              class="custom-slug"
+              type="text"
+              placeholder="my-link"
+              maxlength="32"
+              disabled
+            />
+            <span style="margin-left: auto; color: var(--mute); font-size: 11px"
+              >3 – 32 characters, lowercase letters / digits / hyphen</span
+            >
+          </div>
+
+          <div id="error-box" class="error-box"></div>
+
+          <div id="result-box" class="result-box">
+            <div>
+              <div class="result-label">Your short URL</div>
+              <div class="result-url">
+                <a id="result-url" href="#" target="_blank" rel="noopener"></a>
+              </div>
+            </div>
+            <button id="copy-btn" class="copy-btn" type="button">Copy</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- HOW IT WORKS -->
+      <section class="block" id="how-it-works">
+        <div class="sec-head">
+          <span class="sec-num">01 ·</span>
+          <h2 class="sec-title">How it works</h2>
+        </div>
+        <p class="sec-sub">
+          Two HTTP endpoints, one per concern. The same backend image runs in
+          two modes — writer and reader — selected by an environment variable.
+        </p>
+
+        <div class="quick-facts">
+          <div class="qf-card">
+            <h3>POST /shorten</h3>
+            <p>
+              Random 6-character base62 code generated server-side. Writer pod
+              inserts the document into the Autonomous JSON Database via SODA
+              REST PUT. Returns the short URL.
+            </p>
+          </div>
+          <div class="qf-card">
+            <h3>POST /createcustom</h3>
+            <p>
+              Custom slug provided by the caller. Writer pod validates the slug,
+              checks for collision, then inserts. Returns 409 Conflict if the
+              slug is taken.
+            </p>
+          </div>
+          <div class="qf-card">
+            <h3>GET /{code}</h3>
+            <p>
+              Reader pod fetches the document by code and returns an HTTP 301
+              redirect. Reader scales independently of writer — most real-world
+              shortener traffic is reads.
+            </p>
+          </div>
+        </div>
+
+        <div class="terminal" aria-label="example API call">
+          <span class="prompt">$</span> curl -X POST https://1ms.my/shorten \ -H
+          <span style="color: #b9f0a8">"Content-Type: application/json"</span> \
+          -d
+          <span style="color: #b9f0a8"
+            >'{"url":"https://docs.kubernetes.io/some/long/path"}'</span
+          >
+
+          <span class="comment"
+            ># {"short_url":"https://1ms.my/abc123","code":"abc123"}</span
+          >
+        </div>
+      </section>
+
+      <!-- BEHIND THE SCENES -->
+      <section class="block" id="behind">
+        <div class="sec-head">
+          <span class="sec-num">02 ·</span>
+          <h2 class="sec-title">Behind the scenes</h2>
+        </div>
+        <p class="sec-sub">
+          This shortener is the live application on the platform documented at
+          infra.1ms.my. It is built, tested and deployed via GitOps — every
+          change starts as a Git commit.
+        </p>
+
+        <div class="cols-2">
+          <div class="panel">
+            <h4>Stack</h4>
+            <ul>
+              <li>
+                <strong>Backend</strong> — Go service, distroless image (~12
+                MB). Standard library only; no Oracle client libraries.<span
+                  class="why"
+                  >writer/reader split via MODE env var · 2 replicas</span
+                >
+              </li>
+              <li>
+                <strong>Storage</strong> — Oracle Autonomous JSON Database
+                accessed via SODA REST.<span class="why"
+                  >basic auth over HTTPS · same region</span
+                >
+              </li>
+              <li>
+                <strong>Frontend</strong> — this page: static HTML + JS, served
+                by nginx-unprivileged.<span class="why"
+                  >no framework · no build step</span
+                >
+              </li>
+              <li>
+                <strong>Ingress</strong> — Cloudflare Tunnel → Envoy Gateway →
+                HTTPRoute → Service.<span class="why"
+                  >no public cluster IP · zero inbound ports</span
+                >
+              </li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h4>Operations</h4>
+            <ul>
+              <li>
+                <strong>Build</strong> — GitHub Actions run on every push to
+                <code>main</code>.<span class="why"
+                  >linux/arm64 multi-tag · semver + sha</span
+                >
+              </li>
+              <li>
+                <strong>Promote</strong> — Flux Image Automation watches OCIR
+                and updates manifests.<span class="why"
+                  >commits tag updates back to personal-k8s</span
+                >
+              </li>
+              <li>
+                <strong>Deploy</strong> — kustomize-controller applies
+                manifests; rolling update follows.<span class="why"
+                  >~3 minutes from push to running pod</span
+                >
+              </li>
+              <li>
+                <strong>Secrets</strong> — External Secrets Operator syncs ADB
+                password from OCI Vault.<span class="why"
+                  >no static credentials · instance principal auth</span
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <div class="tag-row">
+          <span class="tag-pill">go backend</span>
+          <span class="tag-pill">writer / reader split</span>
+          <span class="tag-pill">soda rest api</span>
+          <span class="tag-pill">flux gitops</span>
+          <span class="tag-pill">cloudflare tunnel</span>
+        </div>
+        <div>
+          <span class="tag">no tracking · no ads · no logs.</span>
+          <a href="https://infra.1ms.my/">see the architecture →</a>
+        </div>
+        <div>
+          <a href="https://github.com/AaronShemtov/urlshortener-backend"
+            >backend</a
+          >
+          ·
+          <a href="https://github.com/AaronShemtov/urlshortener-frontend"
+            >frontend</a
+          >
+        </div>
+      </footer>
+    </main>
+
+    <script>
+      // ===== Theme toggle (shared pattern across all 1ms.my sites) =====
+      var sun = document.getElementById("icon-sun");
+      var moon = document.getElementById("icon-moon");
+      function applyTheme(t) {
+        document.documentElement.setAttribute("data-theme", t);
+        if (t === "dark") {
+          sun.style.display = "";
+          moon.style.display = "none";
+        } else {
+          sun.style.display = "none";
+          moon.style.display = "";
+        }
+        try {
+          localStorage.setItem("theme", t);
+        } catch (e) {}
+      }
+      applyTheme(
+        document.documentElement.getAttribute("data-theme") || "light",
+      );
+      document
+        .getElementById("theme-btn")
+        .addEventListener("click", function () {
+          var cur =
+            document.documentElement.getAttribute("data-theme") || "light";
+          applyTheme(cur === "light" ? "dark" : "light");
+        });
+
+      // ===== Custom slug toggle =====
+      var optCustom = document.getElementById("opt-custom");
+      var customSlug = document.getElementById("custom-slug");
+      optCustom.addEventListener("change", function () {
+        customSlug.disabled = !optCustom.checked;
+        if (optCustom.checked) customSlug.focus();
       });
 
-      if (resp.status === 409) {
-        showError('That custom code is already taken. Try another one.');
-        return;
-      }
-      if (!resp.ok) {
-        showError('Server returned ' + resp.status + '. Please try again.');
-        return;
-      }
-      var data = await resp.json();
-      // backend returns either { short_url: "..." } or { code: "..." }
-      var shortUrl = data.short_url || (data.code ? (location.origin + '/' + data.code) : null);
-      if (!shortUrl) { showError('Unexpected response from server.'); return; }
-      showResult(shortUrl);
-    } catch (err) {
-      showError('Network error: ' + (err.message || err));
-    } finally {
-      shortenBtn.disabled = false;
-      shortenBtn.textContent = origLabel;
-    }
-  }
+      // ===== Shorten handler =====
+      var longUrl = document.getElementById("long-url");
+      var shortenBtn = document.getElementById("shorten-btn");
+      var resultBox = document.getElementById("result-box");
+      var resultUrl = document.getElementById("result-url");
+      var errorBox = document.getElementById("error-box");
+      var copyBtn = document.getElementById("copy-btn");
 
-  shortenBtn.addEventListener('click', doShorten);
-  longUrl.addEventListener('keydown', function(e){ if (e.key === 'Enter') doShorten(); });
-  customSlug.addEventListener('keydown', function(e){ if (e.key === 'Enter') doShorten(); });
+      function showError(msg) {
+        errorBox.textContent = "✗ " + msg;
+        errorBox.classList.add("show");
+        resultBox.classList.remove("show");
+      }
+      function showResult(url) {
+        resultUrl.textContent = url;
+        resultUrl.href = url;
+        resultBox.classList.add("show");
+        errorBox.classList.remove("show");
+      }
+      function clearMessages() {
+        errorBox.classList.remove("show");
+        resultBox.classList.remove("show");
+      }
 
-  // ===== Copy button =====
-  copyBtn.addEventListener('click', async function(){
-    try {
-      await navigator.clipboard.writeText(resultUrl.textContent);
-      var orig = copyBtn.textContent;
-      copyBtn.textContent = 'Copied!';
-      copyBtn.classList.add('copied');
-      setTimeout(function(){
-        copyBtn.textContent = orig;
-        copyBtn.classList.remove('copied');
-      }, 1500);
-    } catch(e) {
-      // older browser fallback
-      var ta = document.createElement('textarea');
-      ta.value = resultUrl.textContent;
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); } catch(_) {}
-      document.body.removeChild(ta);
-      copyBtn.textContent = 'Copied!';
-      setTimeout(function(){ copyBtn.textContent = 'Copy'; }, 1500);
-    }
-  });
-</script>
-</body>
+      async function doShorten() {
+        var url = longUrl.value.trim();
+        if (!url) {
+          showError("Enter a URL to shorten.");
+          return;
+        }
+        try {
+          new URL(url);
+        } catch (e) {
+          showError(
+            "That does not look like a valid URL. Include the scheme (https://...).",
+          );
+          return;
+        }
+
+        clearMessages();
+        shortenBtn.disabled = true;
+        var origLabel = shortenBtn.textContent;
+        shortenBtn.textContent = "Shortening...";
+
+        try {
+          var endpoint, body;
+          if (optCustom.checked) {
+            var slug = customSlug.value.trim();
+            if (!/^[a-z0-9-]{3,32}$/.test(slug)) {
+              showError(
+                "Custom code must be 3-32 chars: lowercase letters, digits, hyphen.",
+              );
+              return;
+            }
+            endpoint = "/createcustom";
+            body = { url: url, code: slug };
+          } else {
+            endpoint = "/shorten";
+            body = { url: url };
+          }
+
+          var resp = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          if (resp.status === 409) {
+            showError("That custom code is already taken. Try another one.");
+            return;
+          }
+          if (!resp.ok) {
+            showError("Server returned " + resp.status + ". Please try again.");
+            return;
+          }
+          var data = await resp.json();
+          // backend returns either { short_url: "..." } or { code: "..." }
+          var shortUrl =
+            data.short_url ||
+            (data.code ? location.origin + "/" + data.code : null);
+          if (!shortUrl) {
+            showError("Unexpected response from server.");
+            return;
+          }
+          showResult(shortUrl);
+        } catch (err) {
+          showError("Network error: " + (err.message || err));
+        } finally {
+          shortenBtn.disabled = false;
+          shortenBtn.textContent = origLabel;
+        }
+      }
+
+      shortenBtn.addEventListener("click", doShorten);
+      longUrl.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") doShorten();
+      });
+      customSlug.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") doShorten();
+      });
+
+      // ===== Copy button =====
+      copyBtn.addEventListener("click", async function () {
+        try {
+          await navigator.clipboard.writeText(resultUrl.textContent);
+          var orig = copyBtn.textContent;
+          copyBtn.textContent = "Copied!";
+          copyBtn.classList.add("copied");
+          setTimeout(function () {
+            copyBtn.textContent = orig;
+            copyBtn.classList.remove("copied");
+          }, 1500);
+        } catch (e) {
+          // older browser fallback
+          var ta = document.createElement("textarea");
+          ta.value = resultUrl.textContent;
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand("copy");
+          } catch (_) {}
+          document.body.removeChild(ta);
+          copyBtn.textContent = "Copied!";
+          setTimeout(function () {
+            copyBtn.textContent = "Copy";
+          }, 1500);
+        }
+      });
+    </script>
+  </body>
 </html>
