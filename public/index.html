@@ -453,8 +453,11 @@
               maxlength="32"
               disabled
             />
-            <span style="margin-left: auto; color: var(--mute); font-size: 11px"
-              >3 – 32 characters, lowercase letters / digits / hyphen</span
+            <span
+              id="custom-slug-help"
+              hidden
+              style="margin-left: auto; color: var(--mute); font-size: 11px"
+              >4 – 32 characters, lowercase letters / digits / hyphen</span
             >
           </div>
 
@@ -506,8 +509,10 @@
       // ===== Custom slug toggle =====
       var optCustom = document.getElementById("opt-custom");
       var customSlug = document.getElementById("custom-slug");
+      var customSlugHelp = document.getElementById("custom-slug-help");
       optCustom.addEventListener("change", function () {
         customSlug.disabled = !optCustom.checked;
+        customSlugHelp.hidden = !optCustom.checked;
         if (optCustom.checked) customSlug.focus();
       });
 
@@ -559,9 +564,10 @@
           var endpoint, body;
           if (optCustom.checked) {
             var slug = customSlug.value.trim();
-            if (!/^[a-z0-9-]{3,32}$/.test(slug)) {
+            slug = slug.toLowerCase();
+            if (!/^[a-z0-9-]{4,32}$/.test(slug)) {
               showError(
-                "Custom code must be 3-32 chars: lowercase letters, digits, hyphen.",
+                "Custom code must be 4-32 chars: lowercase letters, digits, hyphen.",
               );
               return;
             }
