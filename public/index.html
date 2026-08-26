@@ -395,37 +395,6 @@
         </div>
       </section>
 
-      <!-- ABOUT -->
-      <section class="block" id="about">
-        <div class="sec-head">
-          <span class="sec-num">01 ·</span>
-          <h2 class="sec-title">About</h2>
-        </div>
-        <p class="sec-sub">
-          1ms.my is a privacy-respecting URL shortener, built and deployed as a
-          small GitOps-managed Kubernetes service.
-          <a href="https://infra.1ms.my/">Learn more</a>
-        </p>
-
-        <details class="endpoint-details" id="endpoint-details" open>
-          <summary>Show details</summary>
-          <div class="quick-facts">
-            <div class="qf-card">
-              <h3>POST /shorten</h3>
-              <p>Creates a short URL with a generated code.</p>
-            </div>
-            <div class="qf-card">
-              <h3>POST /createcustom</h3>
-              <p>Creates a short URL with a custom code.</p>
-            </div>
-            <div class="qf-card">
-              <h3>GET /{code}</h3>
-              <p>Redirects visitors to the saved destination.</p>
-            </div>
-          </div>
-        </details>
-      </section>
-
       <footer class="foot">
         <div class="tag-row">
           <span class="tag-pill">go backend</span>
@@ -475,18 +444,6 @@
             document.documentElement.getAttribute("data-theme") || "light";
           applyTheme(cur === "light" ? "dark" : "light");
         });
-
-      var endpointDetails = document.getElementById("endpoint-details");
-      var mobileBreakpoint = window.matchMedia("(max-width: 720px)");
-      function syncEndpointDetails() {
-        endpointDetails.open = !mobileBreakpoint.matches;
-      }
-      syncEndpointDetails();
-      if (mobileBreakpoint.addEventListener) {
-        mobileBreakpoint.addEventListener("change", syncEndpointDetails);
-      } else {
-        mobileBreakpoint.addListener(syncEndpointDetails);
-      }
 
       // ===== Custom slug toggle =====
       var optCustom = document.getElementById("opt-custom");
