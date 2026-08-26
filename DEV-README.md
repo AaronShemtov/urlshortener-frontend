@@ -1,11 +1,13 @@
 Local development instructions for urlshortener-frontend
 
 Prerequisites
+
 - Go (for backend) installed locally
 - Docker (to run nginx) installed locally
 - curl and jq (jq optional but recommended)
 
 Run the backend locally (all mode)
+
 - From the workspace root, run the backend in "all" mode:
 
       go run ../urlshortener-backend/main.go --mode=all
@@ -16,6 +18,7 @@ Run the backend locally (all mode)
       go run ./...
 
 Run nginx locally with Docker (mount config and public dir)
+
 - From this directory (urlshortener-frontend), run:
 
       docker run --rm -p 8080:8080 \
@@ -24,6 +27,7 @@ Run nginx locally with Docker (mount config and public dir)
         nginx:stable
 
 Create a shortcode (example)
+
 - Create a shortcode by POSTing to the backend API (when backend is running on localhost:8080):
 
       curl -s -X POST -H "Content-Type: application/json" \
@@ -33,6 +37,7 @@ Create a shortcode (example)
 - The response JSON includes a `code` field. Use it in the next step.
 
 Test redirect with curl
+
 - Use the returned code to GET the shortcode (nginx will proxy to backend):
 
       curl -I -v --location-trusted --max-redirs 0 http://localhost:8080/<code>
@@ -45,6 +50,7 @@ Local testing instructions for urlshortener-frontend
 This README describes how to run and test the frontend locally against a backend instance.
 
 Prerequisites:
+
 - Docker and docker-compose (or podman-compose) installed locally.
 - A running backend service reachable at host `urlshortener-backend:8080` from the frontend container. For local testing you can run both services with docker-compose using the same network.
 
@@ -53,7 +59,7 @@ Quick start (docker-compose):
 1. Create a `docker-compose.yml` that brings up the frontend (using the nginx container) and the backend. Example snippet:
 
 ```yaml
-version: '3.7'
+version: "3.7"
 services:
   urlshortener-backend:
     image: urlshortener-backend:latest
