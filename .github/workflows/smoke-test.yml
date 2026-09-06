@@ -61,6 +61,8 @@ jobs:
       # Without it the runner never arrives: Cloudflare answers Azure ranges with
       # a managed challenge, and a challenge page is a 403 that means nothing.
       - name: An unauthenticated write is refused
+        id: anon
+        continue-on-error: true
         run: |
           set -euo pipefail
           body=$(curl -sS -o /tmp/anon.json -w '%{http_code}' --max-time 30 \
@@ -83,6 +85,8 @@ jobs:
           fi
 
       - name: An authorised write succeeds
+        id: write
+        continue-on-error: true
         run: |
           set -euo pipefail
           code=$(curl -sS -o /tmp/write.json -w '%{http_code}' --max-time 30 \
@@ -100,6 +104,8 @@ jobs:
           esac
 
       - name: The short link redirects
+        id: redirect
+        continue-on-error: true
         run: |
           set -euo pipefail
           status=$(curl -sS -o /dev/null -I --max-redirs 0 -w '%{http_code}' \
@@ -116,3 +122,20 @@ jobs:
             exit 1
           fi
           echo "Smoke test passed."
+
+      # Every check runs, then this decides the run. Stopping at the first
+      # failure hid which of the two paths — credentialled or anonymous — was
+      # actually broken, and they fail for entirely different reasons: one says
+      # the backend is wrong, the other says the request never reached it.
+      - name: Verdict
+        env:
+          ANON: ${{ steps.anon.outcome }}
+          WRITE: ${{ steps.write.outcome }}
+          REDIRECT: ${{ steps.redirect.outcome }}
+        run: |
+          printf 'anonymous refused : %s\n' "$ANON"
+          printf 'authorised write  : %s\n' "$WRITE"
+          printf 'redirect          : %s\n' "$REDIRECT"
+          for outcome in "$ANON" "$WRITE" "$REDIRECT"; do
+            [ "$outcome" = "success" ] || exit 1
+          done
