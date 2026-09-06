@@ -547,10 +547,42 @@
       var TURNSTILE_SITEKEY = "0x4AAAAAAEqHQv_iTq3xhNjD";
 
       var turnstileWidgetId = null;
-      var pendingToken = null; // {resolve, reject} for the in-flight request
+      var readyToken = null; // a solved token waiting to be spent
+      var waiters = []; // {resolve, reject} for clicks that arrived first
 
       function turnstileConfigured() {
         return TURNSTILE_SITEKEY.indexOf("__REPLACE") !== 0;
+      }
+
+      function deliverToken(token) {
+        var queued = waiters;
+        waiters = [];
+        if (queued.length) {
+          // Somebody is already waiting — hand it straight over and start
+          // solving the next one, so a second link is instant too.
+          queued[0].resolve(token);
+          queued.slice(1).forEach(function (w) {
+            w.reject(new Error("verification was taken by another request"));
+          });
+          refreshToken();
+          return;
+        }
+        readyToken = token;
+      }
+
+      function failWaiters(message) {
+        var queued = waiters;
+        waiters = [];
+        queued.forEach(function (w) {
+          w.reject(new Error(message));
+        });
+      }
+
+      function refreshToken() {
+        readyToken = null;
+        if (turnstileWidgetId !== null && window.turnstile) {
+          window.turnstile.reset(turnstileWidgetId);
+        }
       }
 
       // Called by the Turnstile script once it has loaded (see the tag at the
@@ -560,49 +592,50 @@
         if (!turnstileConfigured() || !window.turnstile) return;
         turnstileWidgetId = window.turnstile.render("#turnstile-widget", {
           sitekey: TURNSTILE_SITEKEY,
-          // Do not run on page load — only when someone actually submits.
-          execution: "execute",
-          // Stay invisible unless Cloudflare wants an interaction.
+          // Solve on page load, not on submit.
+          //
+          // With execution:"execute" the whole handshake — including Privacy
+          // Pass negotiation, which is several round trips to Cloudflare —
+          // started only when the button was pressed, and measured about nine
+          // seconds of staring at "Shortening...". Starting it now means the
+          // challenge is normally finished long before anyone has pasted a URL.
           appearance: "interaction-only",
-          callback: function (token) {
-            if (pendingToken) {
-              pendingToken.resolve(token);
-              pendingToken = null;
-            }
-          },
+          callback: deliverToken,
           "error-callback": function () {
-            if (pendingToken) {
-              pendingToken.reject(new Error("verification failed"));
-              pendingToken = null;
-            }
+            readyToken = null;
+            failWaiters("verification failed");
+          },
+          "timeout-callback": function () {
+            readyToken = null;
+            failWaiters("verification timed out");
           },
           "expired-callback": function () {
-            if (pendingToken) {
-              pendingToken.reject(new Error("verification expired"));
-              pendingToken = null;
-            }
+            // Tokens last about five minutes. Solve another one immediately so
+            // a page left open in a tab still submits without a wait.
+            refreshToken();
           },
         });
       };
 
-      // Returns a fresh single-use token. Reset first: a token is spent the
-      // moment the backend verifies it, so reusing one produces
-      // "timeout-or-duplicate" and a confusing 403 on the second link.
+      // Hands over a token, waiting only if one is not solved yet.
+      //
+      // A token is spent the moment the backend verifies it, so the one handed
+      // out is discarded here and a replacement solved in the background;
+      // reusing it would come back as "timeout-or-duplicate" and read as a
+      // baffling 403 on the second link somebody shortens.
       function getTurnstileToken() {
+        if (readyToken) {
+          var token = readyToken;
+          refreshToken();
+          return Promise.resolve(token);
+        }
+        if (turnstileWidgetId === null || !window.turnstile) {
+          return Promise.reject(new Error("verification is not ready yet"));
+        }
         return new Promise(function (resolve, reject) {
-          if (turnstileWidgetId === null || !window.turnstile) {
-            reject(new Error("verification is not ready yet"));
-            return;
-          }
-          pendingToken = { resolve: resolve, reject: reject };
-          window.turnstile.reset(turnstileWidgetId);
-          window.turnstile.execute(turnstileWidgetId);
-          // Do not hang the button forever if the challenge never resolves.
+          waiters.push({ resolve: resolve, reject: reject });
           setTimeout(function () {
-            if (pendingToken) {
-              pendingToken.reject(new Error("verification timed out"));
-              pendingToken = null;
-            }
+            failWaiters("verification timed out");
           }, 30000);
         });
       }
