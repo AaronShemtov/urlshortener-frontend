@@ -1,59 +1,109 @@
 name: Smoke Tests
 
+# What this checks, and why it looks like this
+#
+# The previous version POSTed an unauthenticated /shorten and expected 200. It
+# failed every day from at least 2026-08-27 without anyone noticing, and by the
+# time it was looked at, two separate things were wrong with it:
+#
+#   1. Cloudflare was refusing the runner outright. GitHub Actions runs from
+#      Azure ranges, and the same request from a residential address went
+#      straight through — so the test never reached the backend at all and its
+#      403 said nothing about the application. The API key header now carries it
+#      past that, via a skip rule on the zone.
+#   2. /shorten stopped being open, deliberately: it had been used to plant 6002
+#      links to phishing pages. A test that expects an unauthenticated write to
+#      succeed is now testing for the bug.
+#
+# It also created a fresh short link on every run, which for a daily cron is 365
+# rows a year of nothing. It now writes one fixed code and expects 409 on every
+# run after the first, which proves the same thing — the write path is alive and
+# authorised — without accumulating anything.
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   schedule:
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
 
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
     env:
       BASE_URL: ${{ secrets.SMOKE_BASE_URL || 'https://1ms.my' }}
+      API_KEY: ${{ secrets.SHORTEN_API_KEY }}
+      # Fixed on purpose — see the note above about not accumulating rows.
+      SMOKE_CODE: smoke-test
+      SMOKE_TARGET: https://example.com/healthcheck/smoke
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install jq
+      - name: Check the API key is configured
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
+          if [ -z "$API_KEY" ]; then
+            echo "::error::SHORTEN_API_KEY is not set on this repository."
+            echo "The write endpoints require it (browsers use Turnstile instead,"
+            echo "which a CI runner cannot solve). The value is in OCI Vault as"
+            echo "'urlshortener-api-key'; add it under Settings > Secrets and"
+            echo "variables > Actions."
+            exit 1
+          fi
 
-      - name: Run smoke scenario
-        shell: bash
+      # The property worth guarding above all others: that an anonymous caller
+      # cannot write. This is the regression that cost 6002 phishing links.
+      - name: An unauthenticated write is refused
         run: |
           set -euo pipefail
-          echo "Using BASE_URL=$BASE_URL"
-          # POST to /shorten and capture body + status code
-          resp=$(curl -s -w "%{http_code}" -H "Content-Type: application/json" -X POST -d '{"url":"https://example.com/healthcheck/smoke"}' "$BASE_URL/shorten")
-          http_code="${resp: -3}"
-          body="${resp:0:-3}"
-          if [ "$http_code" != "200" ] && [ "$http_code" != "201" ]; then
-            echo "POST to /shorten failed with HTTP $http_code"
-            echo "$body"
+          body=$(curl -sS -o /tmp/anon.json -w '%{http_code}' --max-time 30 \
+            -X POST "$BASE_URL/shorten" \
+            -H 'Content-Type: application/json' \
+            -d '{"url":"https://example.com/should-never-be-created"}')
+          echo "HTTP $body"; cat /tmp/anon.json; echo
+          if [ "$body" != "403" ]; then
+            echo "::error::an anonymous POST /shorten returned $body, expected 403"
             exit 1
           fi
-          code=$(echo "$body" | jq -r '.code // empty')
-          if [ -z "$code" ]; then
-            echo "Response did not contain 'code'"
-            echo "$body"
+          # A 403 alone is not enough: Cloudflare returns one too, and a test that
+          # accepts it would pass while never reaching the application. Only our
+          # own JSON proves the refusal came from the code being tested.
+          if ! grep -q 'verification required' /tmp/anon.json; then
+            echo "::error::403 did not come from the application — the request was"
+            echo "blocked upstream, so this run proved nothing about the backend."
             exit 1
           fi
-          short_url="$BASE_URL/$code"
-          echo "Short URL: $short_url"
 
-          # Request headers for the short URL without following redirects
-          status=$(curl -s -o /dev/null -I --max-redirs 0 -w "%{http_code}" "$short_url" || true)
+      - name: An authorised write succeeds
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/write.json -w '%{http_code}' --max-time 30 \
+            -X POST "$BASE_URL/createcustom" \
+            -H 'Content-Type: application/json' \
+            -H "X-API-Key: $API_KEY" \
+            -d "{\"url\":\"$SMOKE_TARGET\",\"code\":\"$SMOKE_CODE\"}")
+          echo "HTTP $code"; cat /tmp/write.json; echo
+          # 200 the first time this ever ran, 409 every time since. Both mean the
+          # request was authorised and reached storage, which is what is being
+          # tested; only a 403 or 5xx would be news.
+          case "$code" in
+            200|409) ;;
+            *) echo "::error::authorised POST /createcustom returned $code"; exit 1 ;;
+          esac
+
+      - name: The short link redirects
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o /dev/null -I --max-redirs 0 -w '%{http_code}' \
+            --max-time 30 "$BASE_URL/$SMOKE_CODE")
+          location=$(curl -sS -I --max-redirs 0 --max-time 30 "$BASE_URL/$SMOKE_CODE" \
+            | awk -F': ' '/^[Ll]ocation:/ {print $2}' | tr -d '\r')
+          echo "HTTP $status -> $location"
           if [ "$status" != "301" ]; then
-            echo "Expected HTTP 301 from short URL, got $status"
-            curl -sI "$short_url" || true
+            echo "::error::expected 301 from $BASE_URL/$SMOKE_CODE, got $status"
             exit 1
           fi
-          location=$(curl -s -I --max-redirs 0 "$short_url" | awk -F': ' '/^Location:/ {print $2}' | tr -d '\r')
-          expected="https://example.com/healthcheck/smoke"
-          if ! echo "$location" | grep -q "$expected"; then
-            echo "Location header does not contain expected URL. Location: $location"
+          if [ "$location" != "$SMOKE_TARGET" ]; then
+            echo "::error::redirect went to '$location', expected '$SMOKE_TARGET'"
             exit 1
           fi
-          echo "Smoke test passed: $short_url -> $location"
+          echo "Smoke test passed."
