@@ -38,3 +38,770 @@
         background-size: 24px 24px;
         position: relative;
       }
+      .shorten-card::before,
+      .shorten-card::after {
+        content: "";
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-color: var(--accent);
+        border-style: solid;
+        border-width: 0;
+      }
+      .shorten-card::before {
+        top: -1px;
+        left: -1px;
+        border-top-width: 1.5px;
+        border-left-width: 1.5px;
+      }
+      .shorten-card::after {
+        bottom: -1px;
+        right: -1px;
+        border-bottom-width: 1.5px;
+        border-right-width: 1.5px;
+      }
+
+      .input-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--mute);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: block;
+      }
+      .input-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      .input-row .url-input {
+        flex: 1;
+        min-width: 240px;
+        padding: 12px 14px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--ink);
+        font-family: var(--mono);
+        font-size: 14px;
+        transition: border-color 0.15s;
+      }
+      .input-row .url-input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      .input-row .url-input::placeholder {
+        color: var(--mute);
+      }
+
+      .btn-go {
+        padding: 12px 22px;
+        background: var(--accent);
+        color: white;
+        border: 1px solid var(--accent);
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+        white-space: nowrap;
+      }
+      .btn-go:hover {
+        background: color-mix(in oklab, var(--accent) 85%, black);
+      }
+      .btn-go:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+      html[data-theme="dark"] .btn-go {
+        color: var(--bg);
+      }
+
+      .opt-row {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--mute);
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+      .opt-row label {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        cursor: pointer;
+      }
+      .opt-row input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+      .opt-row .custom-slug {
+        margin-left: 10px;
+        padding: 6px 10px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        color: var(--ink);
+        font-family: var(--mono);
+        font-size: 12px;
+        width: 160px;
+      }
+      .opt-row .custom-slug:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      .opt-row .custom-slug:disabled {
+        opacity: 0.4;
+      }
+
+      .result-box {
+        margin-top: 22px;
+        padding: 18px 20px;
+        background: color-mix(in oklab, var(--accent-soft) 40%, var(--paper));
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        font-family: var(--mono);
+        display: none;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .result-box.show {
+        display: flex;
+      }
+      .result-box .result-label {
+        font-size: 11px;
+        color: var(--mute);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .result-box .result-url {
+        font-size: 16px;
+        color: var(--accent);
+        font-weight: 600;
+        word-break: break-all;
+        flex: 1;
+        min-width: 0;
+      }
+      .result-box .result-url a {
+        color: inherit;
+      }
+      .result-box .copy-btn {
+        padding: 8px 14px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--ink);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .result-box .copy-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .result-box .copy-btn.copied {
+        background: var(--live);
+        color: white;
+        border-color: var(--live);
+      }
+
+      /* Collapses to nothing while the widget stays invisible, which is the
+         usual case with appearance:interaction-only. Only takes up space on
+         the rare occasion Cloudflare actually asks for a click. */
+      .turnstile-widget:not(:empty) {
+        margin-top: 14px;
+      }
+
+      .error-box {
+        margin-top: 14px;
+        padding: 12px 16px;
+        background: color-mix(in oklab, var(--danger) 10%, var(--paper));
+        border: 1px solid color-mix(in oklab, var(--danger) 40%, var(--line));
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        color: var(--danger);
+        display: none;
+      }
+      .error-box.show {
+        display: block;
+      }
+
+      .quick-facts {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      @media (max-width: 720px) {
+        .quick-facts {
+          grid-template-columns: 1fr;
+        }
+      }
+      .qf-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px 16px;
+      }
+      .qf-card h3 {
+        margin: 0 0 6px;
+        font-family: var(--mono);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .qf-card p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--ink-2);
+        line-height: 1.5;
+      }
+
+      .endpoint-details summary {
+        cursor: pointer;
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+      @media (min-width: 721px) {
+        .endpoint-details summary {
+          display: none;
+        }
+      }
+      .foot {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        align-items: start;
+      }
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .tag-pill {
+        padding: 4px 8px;
+      }
+      .privacy-line {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: var(--mute);
+        text-align: left;
+      }
+      @media (max-width: 720px) {
+        .foot {
+          grid-template-columns: 1fr;
+          row-gap: 18px;
+        }
+      }
+
+      .foot {
+        margin-top: 36px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+      .foot-inner {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        align-items: start;
+      }
+      .foot-col {
+        min-width: 0;
+      }
+      .tag-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .tag-pill {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+      .privacy-line {
+        font-size: 13px;
+        color: var(--mute);
+        margin-bottom: 6px;
+      }
+      .repo-links a {
+        color: inherit;
+        text-decoration: none;
+        font-family: var(--mono);
+      }
+
+      @media (max-width: 720px) {
+        .foot-inner {
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .tag-row {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ribbon">
+      <div class="ribbon-inner">
+        <div class="ribbon-left">
+          <span class="brand">Aaron Shemtov</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px">
+          <nav class="ribbon-nav">
+            <a href="https://aboutme.1ms.my/">about me</a>
+            <a href="https://1ms.my/" class="current">link shortener</a>
+            <a href="https://infra.1ms.my/">Kubernetes platform architecture</a>
+            <a href="https://agentic-ai.1ms.my/">Agentic AI architecture</a>
+            <a href="https://ai-sre-agent.1ms.my/">AI SRE agent</a>
+            <a href="https://secrets.1ms.my/">secrets toolkit</a>
+            <a href="https://myip.1ms.my/">IP checker</a>
+          </nav>
+          <button
+            class="theme-btn"
+            id="theme-btn"
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
+            <svg
+              id="icon-sun"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              style="display: none"
+            >
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg
+              id="icon-moon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <main class="wrap">
+      <section class="hero">
+        <div class="crumbs">
+          <span>~/aaronshemtov</span><span class="sep">/</span
+          ><span>url-shortener</span>
+        </div>
+
+        <h1 class="title"><span class="lt">/</span>1ms.my</h1>
+        <div class="title-tag">
+          curl -H "X-API-Key: …" -X POST 1ms.my/shorten<span
+            class="blink"
+          ></span>
+        </div>
+
+        <!-- hero lede removed to declutter homepage -->
+
+        <!-- SHORTENER FORM -->
+        <div class="shorten-card">
+          <label class="input-label" for="long-url"
+            >Enter a URL to shorten</label
+          >
+          <div class="input-row">
+            <input
+              id="long-url"
+              class="url-input"
+              type="url"
+              placeholder="https://example.com/some/very/long/url"
+            />
+            <button id="shorten-btn" class="btn-go">Shorten</button>
+          </div>
+
+          <div class="opt-row">
+            <label>
+              <input type="checkbox" id="opt-custom" />
+              <span>Custom short code</span>
+            </label>
+            <input
+              id="custom-slug"
+              class="custom-slug"
+              type="text"
+              placeholder="my-link"
+              maxlength="32"
+              disabled
+            />
+            <span
+              id="custom-slug-help"
+              hidden
+              style="margin-left: auto; color: var(--mute); font-size: 11px"
+              >4 – 32 characters, lowercase letters / digits / hyphen</span
+            >
+          </div>
+
+          <!--
+            Cloudflare Turnstile. Usually renders nothing at all: it is set to
+            interaction-only, so a visitor sees a checkbox only when Cloudflare
+            is unsure about the browser. The widget is what makes a write
+            possible — see the note by TURNSTILE_SITEKEY below.
+          -->
+          <div id="turnstile-widget" class="turnstile-widget"></div>
+
+          <div id="error-box" class="error-box"></div>
+
+          <div id="result-box" class="result-box">
+            <div>
+              <div class="result-label">Your short URL</div>
+              <div class="result-url">
+                <a id="result-url" href="#" target="_blank" rel="noopener"></a>
+              </div>
+            </div>
+            <button id="copy-btn" class="copy-btn" type="button">Copy</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- footer removed for minimalism -->
+    </main>
+
+    <script>
+      // ===== Theme toggle (shared pattern across all 1ms.my sites) =====
+      var sun = document.getElementById("icon-sun");
+      var moon = document.getElementById("icon-moon");
+      function applyTheme(t) {
+        document.documentElement.setAttribute("data-theme", t);
+        if (t === "dark") {
+          sun.style.display = "";
+          moon.style.display = "none";
+        } else {
+          sun.style.display = "none";
+          moon.style.display = "";
+        }
+        try {
+          localStorage.setItem("theme", t);
+        } catch (e) {}
+      }
+      applyTheme(
+        document.documentElement.getAttribute("data-theme") || "light",
+      );
+      document
+        .getElementById("theme-btn")
+        .addEventListener("click", function () {
+          var cur =
+            document.documentElement.getAttribute("data-theme") || "light";
+          applyTheme(cur === "light" ? "dark" : "light");
+        });
+
+      // ===== Custom slug toggle =====
+      var optCustom = document.getElementById("opt-custom");
+      var customSlug = document.getElementById("custom-slug");
+      var customSlugHelp = document.getElementById("custom-slug-help");
+      optCustom.addEventListener("change", function () {
+        customSlug.disabled = !optCustom.checked;
+        customSlugHelp.hidden = !optCustom.checked;
+        if (optCustom.checked) customSlug.focus();
+      });
+
+      // ===== Turnstile =====
+      //
+      // Why the form needs this at all: POST /shorten used to accept anything.
+      // In August a script used it to plant 6002 links to phishing pages, and
+      // 1ms.my served those redirects for sixteen days. Turnstile makes a write
+      // cost a real browser passing a real challenge, which a loop cannot do.
+      //
+      // This key is PUBLIC on purpose. It names the widget and cannot mint
+      // tokens; only Cloudflare can, and only the backend's secret key can
+      // confirm one. Publishing it in the page is how Turnstile is meant to be
+      // used — there is nothing to hide here.
+      var TURNSTILE_SITEKEY = "0x4AAAAAAEqHQv_iTq3xhNjD";
+
+      var turnstileWidgetId = null;
+      var readyToken = null; // a solved token waiting to be spent
+      var waiters = []; // {resolve, reject} for clicks that arrived first
+
+      function turnstileConfigured() {
+        return TURNSTILE_SITEKEY.indexOf("__REPLACE") !== 0;
+      }
+
+      function deliverToken(token) {
+        var queued = waiters;
+        waiters = [];
+        if (queued.length) {
+          // Somebody is already waiting — hand it straight over and start
+          // solving the next one, so a second link is instant too.
+          queued[0].resolve(token);
+          queued.slice(1).forEach(function (w) {
+            w.reject(new Error("verification was taken by another request"));
+          });
+          refreshToken();
+          return;
+        }
+        readyToken = token;
+      }
+
+      function failWaiters(message) {
+        var queued = waiters;
+        waiters = [];
+        queued.forEach(function (w) {
+          w.reject(new Error(message));
+        });
+      }
+
+      function refreshToken() {
+        readyToken = null;
+        if (turnstileWidgetId !== null && window.turnstile) {
+          window.turnstile.reset(turnstileWidgetId);
+        }
+      }
+
+      // Called by the Turnstile script once it has loaded (see the tag at the
+      // bottom of this file, which is deliberately placed after this script so
+      // that this function already exists when it fires).
+      window.onloadTurnstileCallback = function () {
+        if (!turnstileConfigured() || !window.turnstile) return;
+        turnstileWidgetId = window.turnstile.render("#turnstile-widget", {
+          sitekey: TURNSTILE_SITEKEY,
+          // Solve on page load, not on submit.
+          //
+          // With execution:"execute" the whole handshake — including Privacy
+          // Pass negotiation, which is several round trips to Cloudflare —
+          // started only when the button was pressed, and measured about nine
+          // seconds of staring at "Shortening...". Starting it now means the
+          // challenge is normally finished long before anyone has pasted a URL.
+          appearance: "interaction-only",
+          callback: deliverToken,
+          "error-callback": function () {
+            readyToken = null;
+            failWaiters("verification failed");
+          },
+          "timeout-callback": function () {
+            readyToken = null;
+            failWaiters("verification timed out");
+          },
+          "expired-callback": function () {
+            // Tokens last about five minutes. Solve another one immediately so
+            // a page left open in a tab still submits without a wait.
+            refreshToken();
+          },
+        });
+      };
+
+      // Hands over a token, waiting only if one is not solved yet.
+      //
+      // A token is spent the moment the backend verifies it, so the one handed
+      // out is discarded here and a replacement solved in the background;
+      // reusing it would come back as "timeout-or-duplicate" and read as a
+      // baffling 403 on the second link somebody shortens.
+      function getTurnstileToken() {
+        if (readyToken) {
+          var token = readyToken;
+          refreshToken();
+          return Promise.resolve(token);
+        }
+        if (turnstileWidgetId === null || !window.turnstile) {
+          return Promise.reject(new Error("verification is not ready yet"));
+        }
+        return new Promise(function (resolve, reject) {
+          waiters.push({ resolve: resolve, reject: reject });
+          setTimeout(function () {
+            failWaiters("verification timed out");
+          }, 30000);
+        });
+      }
+
+      // ===== Shorten handler =====
+      var longUrl = document.getElementById("long-url");
+      var shortenBtn = document.getElementById("shorten-btn");
+      var resultBox = document.getElementById("result-box");
+      var resultUrl = document.getElementById("result-url");
+      var errorBox = document.getElementById("error-box");
+      var copyBtn = document.getElementById("copy-btn");
+
+      function showError(msg) {
+        errorBox.textContent = "✗ " + msg;
+        errorBox.classList.add("show");
+        resultBox.classList.remove("show");
+      }
+      function showResult(url) {
+        resultUrl.textContent = url;
+        resultUrl.href = url;
+        resultBox.classList.add("show");
+        errorBox.classList.remove("show");
+      }
+      function clearMessages() {
+        errorBox.classList.remove("show");
+        resultBox.classList.remove("show");
+      }
+
+      async function doShorten() {
+        var url = longUrl.value.trim();
+        if (!url) {
+          showError("Enter a URL to shorten.");
+          return;
+        }
+        try {
+          new URL(url);
+        } catch (e) {
+          showError(
+            "That does not look like a valid URL. Include the scheme (https://...).",
+          );
+          return;
+        }
+
+        clearMessages();
+        shortenBtn.disabled = true;
+        var origLabel = shortenBtn.textContent;
+        shortenBtn.textContent = "Shortening...";
+
+        try {
+          var endpoint, body;
+          if (optCustom.checked) {
+            var slug = customSlug.value.trim();
+            slug = slug.toLowerCase();
+            if (!/^[a-z0-9-]{4,32}$/.test(slug)) {
+              showError(
+                "Custom code must be 4-32 chars: lowercase letters, digits, hyphen.",
+              );
+              return;
+            }
+            endpoint = "/createcustom";
+            body = { url: url, code: slug };
+          } else {
+            endpoint = "/shorten";
+            body = { url: url };
+          }
+
+          try {
+            body.turnstile_token = await getTurnstileToken();
+          } catch (e) {
+            showError(
+              "Could not verify your browser (" +
+                (e.message || e) +
+                "). Reload the page and try again.",
+            );
+            return;
+          }
+
+          var resp = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          if (resp.status === 409) {
+            showError("That custom code is already taken. Try another one.");
+            return;
+          }
+          if (resp.status === 403) {
+            showError("Verification was rejected. Reload the page and try again.");
+            return;
+          }
+          if (resp.status === 503) {
+            showError(
+              "Verification is temporarily unavailable. Please try again shortly.",
+            );
+            return;
+          }
+          if (!resp.ok) {
+            showError("Server returned " + resp.status + ". Please try again.");
+            return;
+          }
+          var data = await resp.json();
+          // backend returns either { short_url: "..." } or { code: "..." }
+          var shortUrl =
+            data.short_url ||
+            (data.code ? location.origin + "/" + data.code : null);
+          if (!shortUrl) {
+            showError("Unexpected response from server.");
+            return;
+          }
+          showResult(shortUrl);
+        } catch (err) {
+          showError("Network error: " + (err.message || err));
+        } finally {
+          shortenBtn.disabled = false;
+          shortenBtn.textContent = origLabel;
+        }
+      }
+
+      shortenBtn.addEventListener("click", doShorten);
+      longUrl.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") doShorten();
+      });
+      customSlug.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") doShorten();
+      });
+
+      // ===== Copy button =====
+      copyBtn.addEventListener("click", async function () {
+        try {
+          await navigator.clipboard.writeText(resultUrl.textContent);
+          var orig = copyBtn.textContent;
+          copyBtn.textContent = "Copied!";
+          copyBtn.classList.add("copied");
+          setTimeout(function () {
+            copyBtn.textContent = orig;
+            copyBtn.classList.remove("copied");
+          }, 1500);
+        } catch (e) {
+          // older browser fallback
+          var ta = document.createElement("textarea");
+          ta.value = resultUrl.textContent;
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand("copy");
+          } catch (_) {}
+          document.body.removeChild(ta);
+          copyBtn.textContent = "Copied!";
+          setTimeout(function () {
+            copyBtn.textContent = "Copy";
+          }, 1500);
+        }
+      });
+    </script>
+
+    <!--
+      Loaded last, on purpose: render=explicit means it calls
+      onloadTurnstileCallback, which the script above must already have defined.
+      Moving this tag into <head> would race and silently leave the form unable
+      to obtain a token.
+    -->
+    <script
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onloadTurnstileCallback"
+      async
+      defer
+    ></script>
+  </body>
+</html>
