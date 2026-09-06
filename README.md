@@ -13,7 +13,7 @@ Static site for the 1ms.my platform.
 
 ## Shared style
 
-All four 1ms.my sites (1ms.my, cv.1ms.my, infra.1ms.my, pwd.1ms.my) use the same `blueprint.css` file. To keep the visual identity in sync, the file is copied into each repository's `public/` directory.
+All four 1ms.my sites (1ms.my, cv.1ms.my, infra.1ms.my, secrets.1ms.my) use the same `blueprint.css` file. To keep the visual identity in sync, the file is copied into each repository's `public/` directory.
 
 ## Local preview
 
