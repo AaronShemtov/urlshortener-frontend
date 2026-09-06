@@ -108,19 +108,33 @@ jobs:
         continue-on-error: true
         run: |
           set -euo pipefail
-          status=$(curl -sS -o /dev/null -I --max-redirs 0 -w '%{http_code}' \
-            --max-time 30 "$BASE_URL/$SMOKE_CODE")
-          location=$(curl -sS -I --max-redirs 0 --max-time 30 "$BASE_URL/$SMOKE_CODE" \
-            | awk -F': ' '/^[Ll]ocation:/ {print $2}' | tr -d '\r')
-          echo "HTTP $status -> $location"
-          if [ "$status" != "301" ]; then
-            echo "::error::expected 301 from $BASE_URL/$SMOKE_CODE, got $status"
-            exit 1
-          fi
-          if [ "$location" != "$SMOKE_TARGET" ]; then
-            echo "::error::redirect went to '$location', expected '$SMOKE_TARGET'"
-            exit 1
-          fi
+          # Both methods, because they have different callers and this project
+          # has already been caught serving only one. A person clicking a link
+          # sends GET; Slack, Telegram and every other unfurler send HEAD to
+          # build a preview, and the reader used to answer those 405.
+          fail=0
+          for method in GET HEAD; do
+            case "$method" in
+              GET)  args="";;
+              HEAD) args="-I";;
+            esac
+            status=$(curl -sS -o /dev/null $args --max-redirs 0 -w '%{http_code}' \
+              --max-time 30 "$BASE_URL/$SMOKE_CODE")
+            location=$(curl -sS $args --max-redirs 0 --max-time 30 -D - -o /dev/null \
+              "$BASE_URL/$SMOKE_CODE" \
+              | awk -F': ' '/^[Ll]ocation:/ {print $2}' | tr -d '\r')
+            echo "$method -> HTTP $status, Location: $location"
+            if [ "$status" != "301" ]; then
+              echo "::error::$method $BASE_URL/$SMOKE_CODE returned $status, expected 301"
+              fail=1
+              continue
+            fi
+            if [ "$location" != "$SMOKE_TARGET" ]; then
+              echo "::error::$method redirected to '$location', expected '$SMOKE_TARGET'"
+              fail=1
+            fi
+          done
+          [ "$fail" -eq 0 ] || exit 1
           echo "Smoke test passed."
 
       # Every check runs, then this decides the run. Stopping at the first
