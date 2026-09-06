@@ -1,3 +1,4 @@
+# Completed one-shot patch; retained for audit history.
 name: apply-disabled-nav-links
 on:
   workflow_dispatch:
