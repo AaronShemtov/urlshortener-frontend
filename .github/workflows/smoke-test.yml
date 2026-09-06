@@ -52,12 +52,21 @@ jobs:
 
       # The property worth guarding above all others: that an anonymous caller
       # cannot write. This is the regression that cost 6002 phishing links.
+      # X-Smoke-Check carries the same value as the API key, in a header the
+      # application does not read. That is the whole point: it satisfies the
+      # zone's skip rule, so Cloudflare lets the request reach the backend, while
+      # the backend still sees a caller with no credential and refuses it. Sending
+      # X-API-Key here would authorise the write and test nothing.
+      #
+      # Without it the runner never arrives: Cloudflare answers Azure ranges with
+      # a managed challenge, and a challenge page is a 403 that means nothing.
       - name: An unauthenticated write is refused
         run: |
           set -euo pipefail
           body=$(curl -sS -o /tmp/anon.json -w '%{http_code}' --max-time 30 \
             -X POST "$BASE_URL/shorten" \
             -H 'Content-Type: application/json' \
+            -H "X-Smoke-Check: $API_KEY" \
             -d '{"url":"https://example.com/should-never-be-created"}')
           echo "HTTP $body"; cat /tmp/anon.json; echo
           if [ "$body" != "403" ]; then
