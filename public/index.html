@@ -214,6 +214,13 @@
         border-color: var(--live);
       }
 
+      /* Collapses to nothing while the widget stays invisible, which is the
+         usual case with appearance:interaction-only. Only takes up space on
+         the rare occasion Cloudflare actually asks for a click. */
+      .turnstile-widget:not(:empty) {
+        margin-top: 14px;
+      }
+
       .error-box {
         margin-top: 14px;
         padding: 12px 16px;
@@ -420,7 +427,9 @@
 
         <h1 class="title"><span class="lt">/</span>1ms.my</h1>
         <div class="title-tag">
-          curl -X POST 1ms.my/shorten<span class="blink"></span>
+          curl -H "X-API-Key: …" -X POST 1ms.my/shorten<span
+            class="blink"
+          ></span>
         </div>
 
         <!-- hero lede removed to declutter homepage -->
@@ -460,6 +469,14 @@
               >4 – 32 characters, lowercase letters / digits / hyphen</span
             >
           </div>
+
+          <!--
+            Cloudflare Turnstile. Usually renders nothing at all: it is set to
+            interaction-only, so a visitor sees a checkbox only when Cloudflare
+            is unsure about the browser. The widget is what makes a write
+            possible — see the note by TURNSTILE_SITEKEY below.
+          -->
+          <div id="turnstile-widget" class="turnstile-widget"></div>
 
           <div id="error-box" class="error-box"></div>
 
@@ -515,6 +532,80 @@
         customSlugHelp.hidden = !optCustom.checked;
         if (optCustom.checked) customSlug.focus();
       });
+
+      // ===== Turnstile =====
+      //
+      // Why the form needs this at all: POST /shorten used to accept anything.
+      // In August a script used it to plant 6002 links to phishing pages, and
+      // 1ms.my served those redirects for sixteen days. Turnstile makes a write
+      // cost a real browser passing a real challenge, which a loop cannot do.
+      //
+      // This key is PUBLIC on purpose. It names the widget and cannot mint
+      // tokens; only Cloudflare can, and only the backend's secret key can
+      // confirm one. Publishing it in the page is how Turnstile is meant to be
+      // used — there is nothing to hide here.
+      var TURNSTILE_SITEKEY = "__REPLACE_WITH_TURNSTILE_SITEKEY__";
+
+      var turnstileWidgetId = null;
+      var pendingToken = null; // {resolve, reject} for the in-flight request
+
+      function turnstileConfigured() {
+        return TURNSTILE_SITEKEY.indexOf("__REPLACE") !== 0;
+      }
+
+      // Called by the Turnstile script once it has loaded (see the tag at the
+      // bottom of this file, which is deliberately placed after this script so
+      // that this function already exists when it fires).
+      window.onloadTurnstileCallback = function () {
+        if (!turnstileConfigured() || !window.turnstile) return;
+        turnstileWidgetId = window.turnstile.render("#turnstile-widget", {
+          sitekey: TURNSTILE_SITEKEY,
+          // Do not run on page load — only when someone actually submits.
+          execution: "execute",
+          // Stay invisible unless Cloudflare wants an interaction.
+          appearance: "interaction-only",
+          callback: function (token) {
+            if (pendingToken) {
+              pendingToken.resolve(token);
+              pendingToken = null;
+            }
+          },
+          "error-callback": function () {
+            if (pendingToken) {
+              pendingToken.reject(new Error("verification failed"));
+              pendingToken = null;
+            }
+          },
+          "expired-callback": function () {
+            if (pendingToken) {
+              pendingToken.reject(new Error("verification expired"));
+              pendingToken = null;
+            }
+          },
+        });
+      };
+
+      // Returns a fresh single-use token. Reset first: a token is spent the
+      // moment the backend verifies it, so reusing one produces
+      // "timeout-or-duplicate" and a confusing 403 on the second link.
+      function getTurnstileToken() {
+        return new Promise(function (resolve, reject) {
+          if (turnstileWidgetId === null || !window.turnstile) {
+            reject(new Error("verification is not ready yet"));
+            return;
+          }
+          pendingToken = { resolve: resolve, reject: reject };
+          window.turnstile.reset(turnstileWidgetId);
+          window.turnstile.execute(turnstileWidgetId);
+          // Do not hang the button forever if the challenge never resolves.
+          setTimeout(function () {
+            if (pendingToken) {
+              pendingToken.reject(new Error("verification timed out"));
+              pendingToken = null;
+            }
+          }, 30000);
+        });
+      }
 
       // ===== Shorten handler =====
       var longUrl = document.getElementById("long-url");
@@ -578,6 +669,17 @@
             body = { url: url };
           }
 
+          try {
+            body.turnstile_token = await getTurnstileToken();
+          } catch (e) {
+            showError(
+              "Could not verify your browser (" +
+                (e.message || e) +
+                "). Reload the page and try again.",
+            );
+            return;
+          }
+
           var resp = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -586,6 +688,16 @@
 
           if (resp.status === 409) {
             showError("That custom code is already taken. Try another one.");
+            return;
+          }
+          if (resp.status === 403) {
+            showError("Verification was rejected. Reload the page and try again.");
+            return;
+          }
+          if (resp.status === 503) {
+            showError(
+              "Verification is temporarily unavailable. Please try again shortly.",
+            );
             return;
           }
           if (!resp.ok) {
@@ -646,5 +758,17 @@
         }
       });
     </script>
+
+    <!--
+      Loaded last, on purpose: render=explicit means it calls
+      onloadTurnstileCallback, which the script above must already have defined.
+      Moving this tag into <head> would race and silently leave the form unable
+      to obtain a token.
+    -->
+    <script
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onloadTurnstileCallback"
+      async
+      defer
+    ></script>
   </body>
 </html>
